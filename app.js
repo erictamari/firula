@@ -6,7 +6,6 @@
   const STORAGE_KEY = "futebol-manager-v1";
   const POSITIONS = ["Goleiro", "Zagueiro", "Lateral", "Volante", "Meio-campo", "Atacante"];
   const CATEGORIES = ["Jogo", "Locação", "Churrasco", "Material esportivo", "Multa", "Mensalidade", "Outro"];
-  const PAYMENT_STATUS = ["paid", "pending", "exempt", "mensalista", "multa"];
 
   // ========== SEED ==========
   const todayISO = () => new Date().toISOString().slice(0, 10);
@@ -92,20 +91,17 @@
     athletes.forEach(a => {
       const rec = game.attendance?.[a.id];
       if (rec) {
-        // Soma multas independente do status
         totalMultas += Number(rec.fine || 0);
         if (rec.status === "paid") paidCount++;
         else if (rec.status === "pending") pendingCount++;
         else if (rec.status === "mensalista") mensalistaCount++;
         else if (rec.status === "multa") multaCount++;
-        // "exempt" não conta
       }
     });
     const fee = Number(game.fee) || 0;
-    const totalPago = paidCount * fee; // apenas paid (não mensalista)
+    const totalPago = paidCount * fee;
     const totalPendente = pendingCount * fee;
-    // Multas já somadas
-    const totalGeral = totalPago + totalMultas; // sem pendente
+    const totalGeral = totalPago + totalMultas;
     return { paidCount, pendingCount, mensalistaCount, multaCount, totalPago, totalPendente, totalMultasValor: totalMultas, totalGeral };
   }
 
@@ -117,7 +113,6 @@
       totalPendenteGlobal += fin.totalPendente;
       totalMultasGlobal += fin.totalMultasValor;
     });
-    // Lançamentos manuais
     const manualIncome = state.finance.filter(x => x.type === "income").reduce((s, x) => s + Number(x.amount), 0);
     const manualExpense = state.finance.filter(x => x.type === "expense").reduce((s, x) => s + Number(x.amount), 0);
     const receitasRealizadas = totalPagoGlobal + totalMultasGlobal + manualIncome;
@@ -194,7 +189,6 @@
     renderAttendanceRanking("#attendanceRanking", 5, false);
     renderAttendanceRanking("#attendanceRankingLow", 5, true);
 
-    // Mensalistas
     const mensalistas = new Set();
     state.games.forEach(g => {
       if (g.attendance) {
@@ -215,7 +209,6 @@
       }
     }
 
-    // Finance summary
     const finSum = document.getElementById("financeSummary");
     if (finSum) {
       finSum.innerHTML = `
@@ -306,7 +299,6 @@
     selectedGameId = game.id;
     meta.innerHTML = `<div class="game-meta"><strong>${escapeHTML(game.time)}</strong> · ${escapeHTML(game.location)} · ${money(game.fee)} por atleta</div>`;
 
-    // Ordenar atletas
     let athletes = activeAthletes().slice();
     if (sortOrder === "az") athletes.sort((a, b) => a.name.localeCompare(b.name));
     else if (sortOrder === "za") athletes.sort((a, b) => b.name.localeCompare(a.name));
@@ -320,7 +312,7 @@
         </div>
         <div class="presence-actions">
           <label class="switch"><input type="checkbox" class="presence-check" data-id="${a.id}" ${rec.present ? "checked" : ""}> Presente</label>
-          <button class="absence-btn" data-id="${a.id}" title="Marcar como faltou">Faltou</button>
+          <button class="absence-btn" data-id="${a.id}" title="Marcar como faltou">❌ Faltou</button>
         </div>
         <select class="input pay-select payment-status" data-id="${a.id}">
           <option value="paid" ${rec.status === "paid" ? "selected" : ""}>Pago</option>
@@ -703,45 +695,38 @@
 
   // ========== EVENTOS GLOBAIS ==========
   document.addEventListener("click", e => {
-    // Navegação
     const nav = e.target.closest(".nav-item");
     if (nav) return navigate(nav.dataset.page);
 
     const target = e.target.closest("[data-page-target]");
     if (target) return navigate(target.dataset.pageTarget);
 
-    // Mobile menu
     if (e.target.id === "mobileMenu") {
       const sidebar = document.getElementById("sidebar");
       if (sidebar) sidebar.classList.toggle("open");
     }
 
-    // Botões principais
     if (e.target.id === "newAthleteBtn") athleteModal();
     if (e.target.id === "newGameBtn") gameModal();
     if (e.target.id === "newNutmegBtn") rolinhoModal();
     if (e.target.id === "newTransactionBtn") financeModal();
     if (e.target.id === "drawBtn") drawTeams();
 
-    // Editar jogo
     if (e.target.id === "editGameBtn") {
       const game = state.games.find(g => g.id === selectedGameId);
       if (game) gameModal(game);
       else showToast("Nenhum jogo selecionado.", "error");
     }
 
-    // Excluir jogo
     if (e.target.id === "deleteGameBtn") {
       const game = state.games.find(g => g.id === selectedGameId);
       if (game) deleteGame(game.id);
       else showToast("Nenhum jogo selecionado.", "error");
     }
 
-    // Ordenar
     if (e.target.id === "sortAZ") { sortOrder = "az"; renderPresence(); }
     if (e.target.id === "sortZA") { sortOrder = "za"; renderPresence(); }
 
-    // Marcar todos presentes
     if (e.target.id === "markAllPresent") {
       const game = state.games.find(x => x.id === selectedGameId);
       if (game) {
@@ -760,7 +745,6 @@
       }
     }
 
-    // Botão "Faltou"
     const absenceBtn = e.target.closest(".absence-btn");
     if (absenceBtn) {
       const id = absenceBtn.dataset.id;
@@ -776,11 +760,9 @@
       }
     }
 
-    // Editar atleta
     const edit = e.target.closest(".edit-athlete");
     if (edit) athleteModal(edit.dataset.id);
 
-    // Excluir atleta
     const del = e.target.closest(".delete-athlete");
     if (del && confirm("Excluir este atleta? O histórico de jogos e rolinhos será preservado.")) {
       const a = athlete(del.dataset.id);
@@ -791,7 +773,6 @@
       showToast("Atleta removido do elenco.");
     }
 
-    // Excluir rolinho
     const dr = e.target.closest(".delete-rolinho");
     if (dr && confirm("Excluir este registro?")) {
       state.rolinhos = state.rolinhos.filter(x => x.id !== dr.dataset.id);
@@ -801,7 +782,6 @@
       showToast("Rolinho removido.");
     }
 
-    // Excluir financeiro
     const df = e.target.closest(".delete-finance");
     if (df && confirm("Excluir este lançamento?")) {
       state.finance = state.finance.filter(x => x.id !== df.dataset.id);
@@ -811,20 +791,16 @@
       showToast("Lançamento removido.");
     }
 
-    // Fechar modal
     if (e.target.closest(".close-modal")) closeModal();
   });
 
-  // ========== EVENTOS DE MUDANÇA ==========
   document.addEventListener("change", e => {
-    // Selecionar jogo
     if (e.target.id === "gameSelect") {
       selectedGameId = e.target.value;
       sortOrder = "default";
       renderPresence();
     }
 
-    // Presença, pagamento, multa
     if (e.target.matches(".presence-check, .payment-status, .fine-input")) {
       const game = state.games.find(x => x.id === selectedGameId);
       if (!game) return;
@@ -834,7 +810,6 @@
       if (e.target.matches(".presence-check")) rec.present = e.target.checked;
       if (e.target.matches(".payment-status")) {
         rec.status = e.target.value;
-        // Se selecionar "pago", preencher multa com o valor do jogo (se estiver zerado)
         if (rec.status === "paid" && rec.fine === 0) {
           rec.fine = Number(game.fee) || 0;
         }
@@ -845,29 +820,24 @@
       renderGamePaymentSummary(game);
     }
 
-    // Filtros atletas
     if (e.target.id === "athleteSearch" || e.target.id === "positionFilter" || e.target.id === "qualityFilter") {
       renderAthletes();
     }
 
-    // Filtros financeiro
     if (e.target.id === "financeTypeFilter" || e.target.id === "financeCategoryFilter") {
       renderFinance();
     }
   });
 
-  // Inputs de pesquisa (adicional)
   ["athleteSearch", "positionFilter", "qualityFilter"].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.addEventListener("input", renderAthletes);
   });
 
-  // ========== CLOSE MODAL BACKDROP ==========
   document.getElementById("modalBackdrop")?.addEventListener("click", e => {
     if (e.target.id === "modalBackdrop") closeModal();
   });
 
-  // ========== EXPORT / IMPORT ==========
   document.getElementById("exportBtn")?.addEventListener("click", () => {
     const blob = new Blob([JSON.stringify(state, null, 2)], { type: "application/json" });
     const url = URL.createObjectURL(blob);
@@ -900,7 +870,6 @@
     reader.readAsText(file);
   });
 
-  // ========== INICIALIZAÇÃO ==========
   document.addEventListener("DOMContentLoaded", () => {
     renderDashboard();
     console.log("⚽ Futebol Manager iniciado.");
