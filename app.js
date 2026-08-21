@@ -43,7 +43,7 @@
   let state = load();
   let currentPage = "dashboard";
   let selectedGameId = state.games[0]?.id || null;
-  let sortOrder = "default"; // "az" ou "za"
+  let sortOrder = "default";
 
   // ========== PERSISTÊNCIA ==========
   function load() {
@@ -92,43 +92,40 @@
     athletes.forEach(a => {
       const rec = game.attendance?.[a.id];
       if (rec) {
-        if (rec.status === "paid" || rec.status === "mensalista") paidCount++;
-        else if (rec.status === "pending") pendingCount++;
-        else if (rec.status === "multa") multaCount++;
+        // Soma multas independente do status
         totalMultas += Number(rec.fine || 0);
+        if (rec.status === "paid") paidCount++;
+        else if (rec.status === "pending") pendingCount++;
+        else if (rec.status === "mensalista") mensalistaCount++;
+        else if (rec.status === "multa") multaCount++;
+        // "exempt" não conta
       }
     });
     const fee = Number(game.fee) || 0;
-    const totalPago = paidCount * fee;
+    const totalPago = paidCount * fee; // apenas paid (não mensalista)
     const totalPendente = pendingCount * fee;
-    const totalMultasValor = totalMultas;
-    const totalGeral = totalPago + totalMultasValor; // sem pendente
-    return { paidCount, pendingCount, mensalistaCount, multaCount, totalPago, totalPendente, totalMultasValor, totalGeral };
+    // Multas já somadas
+    const totalGeral = totalPago + totalMultas; // sem pendente
+    return { paidCount, pendingCount, mensalistaCount, multaCount, totalPago, totalPendente, totalMultasValor: totalMultas, totalGeral };
   }
 
   function getOverallFinancials() {
-    let totalReceitas = 0, totalPendente = 0, totalMultas = 0;
+    let totalPagoGlobal = 0, totalPendenteGlobal = 0, totalMultasGlobal = 0;
     state.games.forEach(g => {
       const fin = getGameFinancials(g);
-      totalReceitas += fin.totalPago + fin.totalMultasValor;
-      totalPendente += fin.totalPendente;
-      totalMultas += fin.totalMultasValor;
+      totalPagoGlobal += fin.totalPago;
+      totalPendenteGlobal += fin.totalPendente;
+      totalMultasGlobal += fin.totalMultasValor;
     });
-    // Adicionar lançamentos manuais (exceto pendentes)
+    // Lançamentos manuais
     const manualIncome = state.finance.filter(x => x.type === "income").reduce((s, x) => s + Number(x.amount), 0);
     const manualExpense = state.finance.filter(x => x.type === "expense").reduce((s, x) => s + Number(x.amount), 0);
-    // Receita total = receitas de jogos (pagas) + multas pagas (já incluídas) + lançamentos manuais de income
-    // Mas cuidado para não duplicar: se o usuário já lançou manualmente receitas de jogos, pode duplicar.
-    // Vamos considerar que os lançamentos manuais são independentes.
-    // Para evitar duplicidade, podemos subtrair os valores que já foram contabilizados nos jogos, mas isso é complexo.
-    // Vou considerar que o usuário pode usar lançamentos manuais para outros fins, e a receita total é a soma de tudo.
-    // Mas ele pediu para não somar pendentes, então vamos somar apenas os pagos.
-    // Vamos retornar também o pendente total.
+    const receitasRealizadas = totalPagoGlobal + totalMultasGlobal + manualIncome;
     return {
-      receitasRealizadas: totalReceitas + manualIncome,
+      receitasRealizadas,
       despesas: manualExpense,
-      pendenteTotal: totalPendente,
-      multasTotal: totalMultas
+      pendenteTotal: totalPendenteGlobal,
+      multasTotal: totalMultasGlobal
     };
   }
 
@@ -167,20 +164,19 @@
   // ========== DASHBOARD ==========
   function renderDashboard() {
     const total = activeAthletes().length;
-    const todayGame = state.games.find(g => g.date === todayISO());
     const next = [...state.games].filter(g => g.date >= todayISO()).sort((a, b) => a.date.localeCompare(b.date))[0];
     const totalPresence = activeAthletes().reduce((s, a) => s + a.present, 0);
     const avg = total ? Math.round(totalPresence / total) : 0;
     const fin = getOverallFinancials();
-    const pending = state.games.reduce((sum, g) => sum + Object.values(g.attendance || {}).filter(x => x?.status === "pending").length, 0);
+    const pendingCount = state.games.reduce((sum, g) => sum + Object.values(g.attendance || {}).filter(x => x?.status === "pending").length, 0);
 
     const statsEl = document.getElementById("dashboardStats");
     if (statsEl) {
       statsEl.innerHTML = `
         ${statCard("ATLETAS ATIVOS", total, "elenco cadastrado")}
-        ${statCard("PRESENÇAS REGISTRADAS", totalPresence, `${avg} por atleta em média`)}
+        ${statCard("PRESENÇAS", totalPresence, `${avg} por atleta em média`)}
         ${statCard("CAIXA", money(fin.receitasRealizadas - fin.despesas), "receitas - despesas", (fin.receitasRealizadas - fin.despesas) >= 0 ? "positive" : "negative")}
-        ${statCard("PENDENTE A RECEBER", money(fin.pendenteTotal), "jogos não pagos", "warning")}
+        ${statCard("PENDENTE", money(fin.pendenteTotal), "a receber", "warning")}
       `;
     }
 
@@ -318,10 +314,13 @@
     list.innerHTML = athletes.map(a => {
       const rec = game.attendance?.[a.id] || { present: false, status: "pending", fine: 0 };
       return `<div class="presence-row">
-        <div class="presence-player"><div class="mini-avatar">${initials(a.name)}</div><div><strong>${escapeHTML(a.name)}</strong><div class="player-pos">${a.position} · ${a.quality}/10</div></div></div>
-        <div style="display:flex;gap:8px;align-items:center;">
+        <div class="presence-player">
+          <div class="mini-avatar">${initials(a.name)}</div>
+          <div><strong>${escapeHTML(a.name)}</strong><div class="player-pos">${a.position} · ${a.quality}/10</div></div>
+        </div>
+        <div class="presence-actions">
           <label class="switch"><input type="checkbox" class="presence-check" data-id="${a.id}" ${rec.present ? "checked" : ""}> Presente</label>
-          <button class="small-btn absence-btn" data-id="${a.id}" style="color:var(--red);">Faltou</button>
+          <button class="absence-btn" data-id="${a.id}" title="Marcar como faltou">Faltou</button>
         </div>
         <select class="input pay-select payment-status" data-id="${a.id}">
           <option value="paid" ${rec.status === "paid" ? "selected" : ""}>Pago</option>
@@ -347,7 +346,10 @@
         <div class="stat"><div class="label">Multas</div><div class="value">${money(fin.totalMultasValor)}</div></div>
         <div class="stat"><div class="label">Pendentes (${fin.pendingCount})</div><div class="value warning">${money(fin.totalPendente)}</div></div>
       </div>
-      <div class="leader-row"><div>💰</div><div><strong>Total (sem pendente)</strong></div><b class="positive">${money(fin.totalGeral)}</b></div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px;flex-wrap:wrap;gap:8px;">
+        <span><strong>Mensalistas:</strong> ${fin.mensalistaCount}</span>
+        <span><strong>Total (sem pendente):</strong> <span class="positive">${money(fin.totalGeral)}</span></span>
+      </div>
     `;
   }
 
@@ -430,7 +432,7 @@
     const statsEl = document.getElementById("rolinhoStats");
     if (statsEl) {
       statsEl.innerHTML = `
-        ${statCard("TOTAL DE ROLINHOS", total, "registrados")}
+        ${statCard("TOTAL", total, "registrados")}
         ${statCard("MAIOR ROLINHO", king ? `${king[1]}` : "0", king ? athlete(king[0])?.name : "—", "positive")}
         ${statCard("MAIS TOMOU", victim ? `${victim[1]}` : "0", victim ? athlete(victim[0])?.name : "—", "warning")}
         ${statCard("CONFRONTOS", new Set(state.rolinhos.map(r => `${r.giver}-${r.taker}`)).size, "pares diferentes")}
@@ -489,10 +491,10 @@
     const statsEl = document.getElementById("financeStats");
     if (statsEl) {
       statsEl.innerHTML = `
-        ${statCard("RECEITAS REALIZADAS", money(fin.receitasRealizadas), "pagamentos efetivos", "positive")}
+        ${statCard("RECEITAS REALIZADAS", money(fin.receitasRealizadas), "pagamentos + multas", "positive")}
         ${statCard("DESPESAS", money(fin.despesas), "total", "negative")}
-        ${statCard("SALDO REALIZADO", money(fin.receitasRealizadas - fin.despesas), "receitas - despesas", (fin.receitasRealizadas - fin.despesas) >= 0 ? "positive" : "negative")}
-        ${statCard("PENDENTE A RECEBER", money(fin.pendenteTotal), "jogos não pagos", "warning")}
+        ${statCard("SALDO", money(fin.receitasRealizadas - fin.despesas), "realizado", (fin.receitasRealizadas - fin.despesas) >= 0 ? "positive" : "negative")}
+        ${statCard("PENDENTE", money(fin.pendenteTotal), "a receber", "warning")}
       `;
     }
 
