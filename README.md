@@ -6,111 +6,30 @@ Sistema web completo, responsivo e com visual profissional para **gestão de atl
 
 ## Recursos
 
-- 📊 **Dashboard**
-  - Total de atletas ativos
-  - Presenças registradas
-  - Saldo financeiro (realizado)
-  - Pendente a receber
-  - Próximo jogo
-  - Ranking de rolinhos
-  - Ranking de mais presentes
-  - Ranking de menos presentes (baixa frequência)
-  - Lista de atletas mensalistas
-  - Resumo financeiro com pendentes
+- 📊 **Dashboard** com visão geral de atletas, presenças, saldo e pendentes.
+- 👥 **Cadastro de atletas** com posição (inclui Zagueiro), qualidade e assiduidade.
+- ✅ **Presença & pagamentos** com checkboxes lado a lado para **Presente** e **Faltou**, ordenação A-Z/Z-A, status de pagamento (Pago, Pendente, Isento, Mensalista, Multa) e resumo financeiro do jogo (valores pagos, multas, pendentes, mensalistas e total).
+- ⚽ **Sorteio de times** equilibrado por posição e qualidade.
+- 😅 **Rolinho** com ranking e matriz de confrontos.
+- 💰 **Financeiro** com lançamentos manuais e cálculo automático de receitas (exclui pendentes e mensalistas).
+- 💾 **Persistência** via localStorage, com exportação e importação de backup.
 
-- 👥 **Cadastro de atletas**
-  - Nome
-  - Posição: Goleiro, Zagueiro, Lateral, Volante, Meio-campo, Atacante
-  - Nota de qualidade de 1 a 10
-  - Indicador de assiduidade
-  - Busca e filtros
+## Layout
 
-- ✅ **Presença & pagamentos**
-  - Cadastro, edição e exclusão de jogos
-  - Data, horário e local
-  - Valor por atleta
-  - Presença individual (checkbox Presente + botão Faltou bem visível)
-  - Status de pagamento: **Pago**, **Pendente**, **Isento**, **Mensalista**, **Multa**
-  - Registro de multa (valor)
-  - Ao selecionar **Pago**, o campo multa é preenchido automaticamente com o valor do jogo (se estiver zerado)
-  - Botões para ordenar atletas A-Z e Z-A
-  - Caixa do jogo com:
-    - Valor total pago (apenas status Pago)
-    - Valor total de multas (soma de todas as multas)
-    - Valor pendente (status Pendente)
-    - Contagem de mensalistas
-    - Total geral (Pago + Multas, sem pendente)
-  - Mensalistas **não** são contabilizados como receita do jogo (já pagaram mensalidade)
-
-- ⚽ **Sorteio de times**
-  - Escolha de atletas por time
-  - Escolha da quantidade de times
-  - Opção para utilizar somente atletas presentes
-  - Critérios:
-    - Equilíbrio máximo
-    - Priorizar qualidade
-    - Priorizar posições
-  - Distribuição considerando posição e nota
-  - Média e pontuação total de cada equipe
-
-- 😅 **Rolinho**
-  - Registra quem deu o rolinho
-  - Registra quem tomou
-  - Data do lance
-  - Ranking de quem mais aplicou
-  - Ranking de quem mais tomou
-  - Matriz de confronto direto
-  - Histórico com exclusão de registros
-
-- 💰 **Financeiro**
-  - Receitas e despesas (lançamentos manuais)
-  - Categorias: Jogo, Locação, Churrasco, Material esportivo, Multa, Mensalidade, Outro
-  - Saldo realizado
-  - Pendente a receber (calculado automaticamente a partir dos jogos)
-  - Filtros por tipo e categoria
-  - A receita total **não inclui** valores pendentes nem mensalistas
-
-- 💾 **Dados**
-  - Persistência automática via `localStorage`
-  - Exportação de backup em JSON
-  - Importação de backup em JSON
+O sistema é **totalmente responsivo**, adaptando-se a telas de desktop e celular, com barra lateral colapsável em dispositivos móveis.
 
 ## Como usar
 
-### 1. Cadastre os atletas
-
-Abra **Atletas → Novo atleta**.
-
-Informe nome, posição e qualidade.
-
-### 2. Cadastre o jogo
-
-Abra **Presença & pagamentos → Registrar jogo**.
-
-### 3. Marque presença e pagamentos
-
-- Marque **Presente** para cada atleta.
-- Use o botão **❌ Faltou** (visível e estilizado em vermelho) para marcar ausência.
-- Selecione o status de pagamento.
-- Acompanhe o resumo do caixa.
-
-### 4. Sorteie os times
-
-Abra **Sorteio de times** e configure.
-
-### 5. Registre rolinhos
-
-Abra **Rolinho → Registrar rolinho**.
-
-### 6. Controle o caixa
-
-Em **Financeiro**, lance receitas e despesas.
+1. Cadastre atletas em **Atletas**.
+2. Crie um jogo em **Presença & pagamentos**.
+3. Marque presença com os checkboxes **Presente** ou **Faltou** (eles se alternam automaticamente).
+4. Selecione o status de pagamento e opcionalmente uma multa.
+5. Acompanhe o resumo financeiro do jogo.
+6. Realize sorteios, registre rolinhos e controle o caixa geral.
 
 ## Tecnologias
 
-- HTML5
-- CSS3
-- JavaScript ES6+
+- HTML5, CSS3, JavaScript ES6+
 - LocalStorage
 - Google Fonts
 
