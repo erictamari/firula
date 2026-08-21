@@ -6,7 +6,7 @@
   const STORAGE_KEY = "futebol-manager-v1";
   const POSITIONS = ["Goleiro", "Zagueiro", "Lateral", "Volante", "Meio-campo", "Atacante"];
   const CATEGORIES = ["Jogo", "Locação", "Churrasco", "Material esportivo", "Multa", "Mensalidade", "Outro"];
-  const PAYMENT_STATUS = ["paid", "pending", "exempt", "mensalista"]; // novos status
+  const PAYMENT_STATUS = ["paid", "pending", "exempt", "mensalista", "multa"];
 
   // ========== SEED ==========
   const todayISO = () => new Date().toISOString().slice(0, 10);
@@ -43,6 +43,7 @@
   let state = load();
   let currentPage = "dashboard";
   let selectedGameId = state.games[0]?.id || null;
+  let sortOrder = "default"; // "az" ou "za"
 
   // ========== PERSISTÊNCIA ==========
   function load() {
@@ -81,6 +82,54 @@
     const container = document.getElementById("toastContainer");
     if (container) container.appendChild(t);
     setTimeout(() => t.remove(), 3000);
+  }
+
+  // ========== CÁLCULOS FINANCEIROS ==========
+  function getGameFinancials(game) {
+    let paidCount = 0, pendingCount = 0, mensalistaCount = 0, multaCount = 0;
+    let totalMultas = 0;
+    const athletes = activeAthletes();
+    athletes.forEach(a => {
+      const rec = game.attendance?.[a.id];
+      if (rec) {
+        if (rec.status === "paid" || rec.status === "mensalista") paidCount++;
+        else if (rec.status === "pending") pendingCount++;
+        else if (rec.status === "multa") multaCount++;
+        totalMultas += Number(rec.fine || 0);
+      }
+    });
+    const fee = Number(game.fee) || 0;
+    const totalPago = paidCount * fee;
+    const totalPendente = pendingCount * fee;
+    const totalMultasValor = totalMultas;
+    const totalGeral = totalPago + totalMultasValor; // sem pendente
+    return { paidCount, pendingCount, mensalistaCount, multaCount, totalPago, totalPendente, totalMultasValor, totalGeral };
+  }
+
+  function getOverallFinancials() {
+    let totalReceitas = 0, totalPendente = 0, totalMultas = 0;
+    state.games.forEach(g => {
+      const fin = getGameFinancials(g);
+      totalReceitas += fin.totalPago + fin.totalMultasValor;
+      totalPendente += fin.totalPendente;
+      totalMultas += fin.totalMultasValor;
+    });
+    // Adicionar lançamentos manuais (exceto pendentes)
+    const manualIncome = state.finance.filter(x => x.type === "income").reduce((s, x) => s + Number(x.amount), 0);
+    const manualExpense = state.finance.filter(x => x.type === "expense").reduce((s, x) => s + Number(x.amount), 0);
+    // Receita total = receitas de jogos (pagas) + multas pagas (já incluídas) + lançamentos manuais de income
+    // Mas cuidado para não duplicar: se o usuário já lançou manualmente receitas de jogos, pode duplicar.
+    // Vamos considerar que os lançamentos manuais são independentes.
+    // Para evitar duplicidade, podemos subtrair os valores que já foram contabilizados nos jogos, mas isso é complexo.
+    // Vou considerar que o usuário pode usar lançamentos manuais para outros fins, e a receita total é a soma de tudo.
+    // Mas ele pediu para não somar pendentes, então vamos somar apenas os pagos.
+    // Vamos retornar também o pendente total.
+    return {
+      receitasRealizadas: totalReceitas + manualIncome,
+      despesas: manualExpense,
+      pendenteTotal: totalPendente,
+      multasTotal: totalMultas
+    };
   }
 
   // ========== NAVEGAÇÃO ==========
@@ -122,8 +171,7 @@
     const next = [...state.games].filter(g => g.date >= todayISO()).sort((a, b) => a.date.localeCompare(b.date))[0];
     const totalPresence = activeAthletes().reduce((s, a) => s + a.present, 0);
     const avg = total ? Math.round(totalPresence / total) : 0;
-    const income = state.finance.filter(x => x.type === "income").reduce((s, x) => s + Number(x.amount), 0);
-    const expense = state.finance.filter(x => x.type === "expense").reduce((s, x) => s + Number(x.amount), 0);
+    const fin = getOverallFinancials();
     const pending = state.games.reduce((sum, g) => sum + Object.values(g.attendance || {}).filter(x => x?.status === "pending").length, 0);
 
     const statsEl = document.getElementById("dashboardStats");
@@ -131,8 +179,8 @@
       statsEl.innerHTML = `
         ${statCard("ATLETAS ATIVOS", total, "elenco cadastrado")}
         ${statCard("PRESENÇAS REGISTRADAS", totalPresence, `${avg} por atleta em média`)}
-        ${statCard("CAIXA", money(income - expense), income - expense >= 0 ? "saldo positivo" : "saldo negativo", income - expense >= 0 ? "positive" : "negative")}
-        ${statCard("PENDÊNCIAS", pending, "pagamentos/multas", pending ? "warning" : "positive")}
+        ${statCard("CAIXA", money(fin.receitasRealizadas - fin.despesas), "receitas - despesas", (fin.receitasRealizadas - fin.despesas) >= 0 ? "positive" : "negative")}
+        ${statCard("PENDENTE A RECEBER", money(fin.pendenteTotal), "jogos não pagos", "warning")}
       `;
     }
 
@@ -147,19 +195,10 @@
     }
 
     renderRolinhoRanking("#rolinhoRanking", 5);
-    renderAttendanceRanking("#attendanceRanking", 5, false); // mais presentes
-    renderAttendanceRanking("#attendanceRankingLow", 5, true); // menos presentes
+    renderAttendanceRanking("#attendanceRanking", 5, false);
+    renderAttendanceRanking("#attendanceRankingLow", 5, true);
 
-    const finSum = document.getElementById("financeSummary");
-    if (finSum) {
-      finSum.innerHTML = `
-        <div class="leader-row"><div>↗</div><div><strong>Receitas</strong><div class="bar"><i style="width:${Math.min(100, income ? 100 : 0)}%"></i></div></div><b class="positive">${money(income)}</b></div>
-        <div class="leader-row"><div>↘</div><div><strong>Despesas</strong></div><b class="negative">${money(expense)}</b></div>
-        <div class="leader-row"><div>Σ</div><div><strong>Saldo</strong></div><b>${money(income - expense)}</b></div>
-      `;
-    }
-
-    // Resumo de mensalistas: atletas que têm status "mensalista" em algum jogo
+    // Mensalistas
     const mensalistas = new Set();
     state.games.forEach(g => {
       if (g.attendance) {
@@ -178,6 +217,17 @@
       } else {
         mensalEl.innerHTML = `<div class="empty-state">Nenhum atleta marcado como mensalista.</div>`;
       }
+    }
+
+    // Finance summary
+    const finSum = document.getElementById("financeSummary");
+    if (finSum) {
+      finSum.innerHTML = `
+        <div class="leader-row"><div>↗</div><div><strong>Receitas realizadas</strong><div class="bar"><i style="width:${Math.min(100, fin.receitasRealizadas ? 100 : 0)}%"></i></div></div><b class="positive">${money(fin.receitasRealizadas)}</b></div>
+        <div class="leader-row"><div>↘</div><div><strong>Despesas</strong></div><b class="negative">${money(fin.despesas)}</b></div>
+        <div class="leader-row"><div>⏳</div><div><strong>Pendente (a receber)</strong></div><b class="warning">${money(fin.pendenteTotal)}</b></div>
+        <div class="leader-row"><div>Σ</div><div><strong>Saldo (realizado)</strong></div><b>${money(fin.receitasRealizadas - fin.despesas)}</b></div>
+      `;
     }
   }
 
@@ -260,16 +310,25 @@
     selectedGameId = game.id;
     meta.innerHTML = `<div class="game-meta"><strong>${escapeHTML(game.time)}</strong> · ${escapeHTML(game.location)} · ${money(game.fee)} por atleta</div>`;
 
-    list.innerHTML = activeAthletes().map(a => {
+    // Ordenar atletas
+    let athletes = activeAthletes().slice();
+    if (sortOrder === "az") athletes.sort((a, b) => a.name.localeCompare(b.name));
+    else if (sortOrder === "za") athletes.sort((a, b) => b.name.localeCompare(a.name));
+
+    list.innerHTML = athletes.map(a => {
       const rec = game.attendance?.[a.id] || { present: false, status: "pending", fine: 0 };
       return `<div class="presence-row">
         <div class="presence-player"><div class="mini-avatar">${initials(a.name)}</div><div><strong>${escapeHTML(a.name)}</strong><div class="player-pos">${a.position} · ${a.quality}/10</div></div></div>
-        <label class="switch"><input type="checkbox" class="presence-check" data-id="${a.id}" ${rec.present ? "checked" : ""}> Presente</label>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <label class="switch"><input type="checkbox" class="presence-check" data-id="${a.id}" ${rec.present ? "checked" : ""}> Presente</label>
+          <button class="small-btn absence-btn" data-id="${a.id}" style="color:var(--red);">Faltou</button>
+        </div>
         <select class="input pay-select payment-status" data-id="${a.id}">
           <option value="paid" ${rec.status === "paid" ? "selected" : ""}>Pago</option>
           <option value="pending" ${rec.status === "pending" ? "selected" : ""}>Pendente</option>
           <option value="exempt" ${rec.status === "exempt" ? "selected" : ""}>Isento</option>
           <option value="mensalista" ${rec.status === "mensalista" ? "selected" : ""}>Mensalista</option>
+          <option value="multa" ${rec.status === "multa" ? "selected" : ""}>Multa</option>
         </select>
         <input class="input pay-select fine-input" type="number" min="0" step=".01" data-id="${a.id}" value="${rec.fine || 0}" title="Multa">
       </div>`;
@@ -279,21 +338,16 @@
   }
 
   function renderGamePaymentSummary(game) {
-    const rows = activeAthletes().map(a => game.attendance?.[a.id]).filter(Boolean);
-    const paid = rows.filter(x => x.status === "paid" || x.status === "mensalista").length;
-    const pending = rows.filter(x => x.status === "pending").length;
-    const mensalistas = rows.filter(x => x.status === "mensalista").length;
-    const fines = rows.reduce((s, x) => s + Number(x.fine || 0), 0);
-
+    const fin = getGameFinancials(game);
     const el = document.getElementById("gamePaymentSummary");
     if (!el) return;
     el.innerHTML = `
       <div class="stats-grid" style="grid-template-columns:1fr 1fr 1fr">
-        <div class="stat"><div class="label">Pagos</div><div class="value positive">${paid}</div></div>
-        <div class="stat"><div class="label">Pendentes</div><div class="value ${pending ? "warning" : "positive"}">${pending}</div></div>
-        <div class="stat"><div class="label">Mensalistas</div><div class="value">${mensalistas}</div></div>
+        <div class="stat"><div class="label">Pagos (${fin.paidCount})</div><div class="value positive">${money(fin.totalPago)}</div></div>
+        <div class="stat"><div class="label">Multas</div><div class="value">${money(fin.totalMultasValor)}</div></div>
+        <div class="stat"><div class="label">Pendentes (${fin.pendingCount})</div><div class="value warning">${money(fin.totalPendente)}</div></div>
       </div>
-      <div class="leader-row"><div>R$</div><div><strong>Multas registradas</strong></div><b>${money(fines)}</b></div>
+      <div class="leader-row"><div>💰</div><div><strong>Total (sem pendente)</strong></div><b class="positive">${money(fin.totalGeral)}</b></div>
     `;
   }
 
@@ -431,18 +485,14 @@
 
   // ========== FINANCEIRO ==========
   function renderFinance() {
-    const income = state.finance.filter(x => x.type === "income").reduce((s, x) => s + Number(x.amount), 0);
-    const expense = state.finance.filter(x => x.type === "expense").reduce((s, x) => s + Number(x.amount), 0);
-    const month = new Date().toISOString().slice(0, 7);
-    const monthIncome = state.finance.filter(x => x.date?.startsWith(month) && x.type === "income").reduce((s, x) => s + Number(x.amount), 0);
-
+    const fin = getOverallFinancials();
     const statsEl = document.getElementById("financeStats");
     if (statsEl) {
       statsEl.innerHTML = `
-        ${statCard("RECEITAS", money(income), "total", "positive")}
-        ${statCard("DESPESAS", money(expense), "total", "negative")}
-        ${statCard("SALDO", money(income - expense), "receitas − despesas", income - expense >= 0 ? "positive" : "negative")}
-        ${statCard("MÊS ATUAL", money(monthIncome), "receitas do mês", "positive")}
+        ${statCard("RECEITAS REALIZADAS", money(fin.receitasRealizadas), "pagamentos efetivos", "positive")}
+        ${statCard("DESPESAS", money(fin.despesas), "total", "negative")}
+        ${statCard("SALDO REALIZADO", money(fin.receitasRealizadas - fin.despesas), "receitas - despesas", (fin.receitasRealizadas - fin.despesas) >= 0 ? "positive" : "negative")}
+        ${statCard("PENDENTE A RECEBER", money(fin.pendenteTotal), "jogos não pagos", "warning")}
       `;
     }
 
@@ -520,18 +570,19 @@
     document.querySelectorAll(".close-modal").forEach(btn => btn.onclick = closeModal);
   }
 
-  function gameModal() {
+  function gameModal(editGame = null) {
+    const g = editGame || null;
     openModal(`
-      <h3>Registrar jogo</h3>
-      <p class="modal-sub">Cadastre data, horário, local e valor cobrado de cada atleta.</p>
+      <h3>${g ? "Editar jogo" : "Registrar jogo"}</h3>
+      <p class="modal-sub">${g ? "Altere os dados do jogo." : "Cadastre data, horário, local e valor cobrado de cada atleta."}</p>
       <form id="gameForm">
         <div class="form-grid">
-          <div class="field"><label>Data</label><input class="input" type="date" name="date" required value="${todayISO()}"></div>
-          <div class="field"><label>Horário</label><input class="input" type="time" name="time" required value="20:00"></div>
-          <div class="field full"><label>Local</label><input class="input" name="location" required placeholder="Ex.: Arena Futebol"></div>
-          <div class="field"><label>Valor por atleta</label><input class="input" type="number" min="0" step=".01" name="fee" value="20"></div>
+          <div class="field"><label>Data</label><input class="input" type="date" name="date" required value="${g ? g.date : todayISO()}"></div>
+          <div class="field"><label>Horário</label><input class="input" type="time" name="time" required value="${g ? g.time : "20:00"}"></div>
+          <div class="field full"><label>Local</label><input class="input" name="location" required placeholder="Ex.: Arena Futebol" value="${g ? escapeHTML(g.location) : ""}"></div>
+          <div class="field"><label>Valor por atleta</label><input class="input" type="number" min="0" step=".01" name="fee" value="${g ? g.fee : 20}"></div>
         </div>
-        <div class="modal-actions"><button type="button" class="btn btn-secondary close-modal">Cancelar</button><button class="btn btn-primary">Criar jogo</button></div>
+        <div class="modal-actions"><button type="button" class="btn btn-secondary close-modal">Cancelar</button><button class="btn btn-primary">${g ? "Salvar alterações" : "Criar jogo"}</button></div>
       </form>
     `);
     const form = document.getElementById("gameForm");
@@ -539,23 +590,40 @@
       form.onsubmit = e => {
         e.preventDefault();
         const fd = new FormData(e.currentTarget);
-        const g = {
-          id: uid("g"),
+        const data = {
           date: fd.get("date"),
           time: fd.get("time"),
           location: fd.get("location").trim(),
-          fee: Number(fd.get("fee")) || 0,
-          attendance: {}
+          fee: Number(fd.get("fee")) || 0
         };
-        state.games.push(g);
-        selectedGameId = g.id;
+        if (g) {
+          Object.assign(g, data);
+          showToast("Jogo atualizado.");
+        } else {
+          const newGame = { id: uid("g"), ...data, attendance: {} };
+          state.games.push(newGame);
+          selectedGameId = newGame.id;
+          showToast("Jogo registrado.");
+        }
         save();
         closeModal();
-        navigate("presenca");
-        showToast("Jogo registrado.");
+        renderPresence();
+        renderDashboard();
       };
     }
     document.querySelectorAll(".close-modal").forEach(btn => btn.onclick = closeModal);
+  }
+
+  function deleteGame(gameId) {
+    if (!confirm("Tem certeza que deseja excluir este jogo? Todas as presenças serão perdidas.")) return;
+    state.games = state.games.filter(g => g.id !== gameId);
+    if (selectedGameId === gameId) {
+      selectedGameId = state.games[0]?.id || null;
+    }
+    save();
+    renderPresence();
+    renderDashboard();
+    showToast("Jogo excluído.");
   }
 
   function rolinhoModal() {
@@ -653,6 +721,25 @@
     if (e.target.id === "newTransactionBtn") financeModal();
     if (e.target.id === "drawBtn") drawTeams();
 
+    // Editar jogo
+    if (e.target.id === "editGameBtn") {
+      const game = state.games.find(g => g.id === selectedGameId);
+      if (game) gameModal(game);
+      else showToast("Nenhum jogo selecionado.", "error");
+    }
+
+    // Excluir jogo
+    if (e.target.id === "deleteGameBtn") {
+      const game = state.games.find(g => g.id === selectedGameId);
+      if (game) deleteGame(game.id);
+      else showToast("Nenhum jogo selecionado.", "error");
+    }
+
+    // Ordenar
+    if (e.target.id === "sortAZ") { sortOrder = "az"; renderPresence(); }
+    if (e.target.id === "sortZA") { sortOrder = "za"; renderPresence(); }
+
+    // Marcar todos presentes
     if (e.target.id === "markAllPresent") {
       const game = state.games.find(x => x.id === selectedGameId);
       if (game) {
@@ -668,6 +755,22 @@
         save();
         renderPresence();
         showToast("Todos marcados como presentes.");
+      }
+    }
+
+    // Botão "Faltou"
+    const absenceBtn = e.target.closest(".absence-btn");
+    if (absenceBtn) {
+      const id = absenceBtn.dataset.id;
+      const game = state.games.find(x => x.id === selectedGameId);
+      if (game) {
+        game.attendance = game.attendance || {};
+        const rec = game.attendance[id] || { present: false, status: "pending", fine: 0 };
+        rec.present = false;
+        game.attendance[id] = rec;
+        save();
+        renderPresence();
+        showToast("Atleta marcado como faltou.");
       }
     }
 
@@ -715,6 +818,7 @@
     // Selecionar jogo
     if (e.target.id === "gameSelect") {
       selectedGameId = e.target.value;
+      sortOrder = "default";
       renderPresence();
     }
 
@@ -726,7 +830,13 @@
       game.attendance = game.attendance || {};
       const rec = game.attendance[id] || { present: false, status: "pending", fine: 0 };
       if (e.target.matches(".presence-check")) rec.present = e.target.checked;
-      if (e.target.matches(".payment-status")) rec.status = e.target.value;
+      if (e.target.matches(".payment-status")) {
+        rec.status = e.target.value;
+        // Se selecionar "pago", preencher multa com o valor do jogo (se estiver zerado)
+        if (rec.status === "paid" && rec.fine === 0) {
+          rec.fine = Number(game.fee) || 0;
+        }
+      }
       if (e.target.matches(".fine-input")) rec.fine = Number(e.target.value) || 0;
       game.attendance[id] = rec;
       save();
