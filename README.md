@@ -9,13 +9,14 @@ Sistema web completo, responsivo e com visual profissional para **gestão de atl
 - 📊 **Dashboard**
   - Total de atletas ativos
   - Presenças registradas
-  - Saldo financeiro
-  - Pendências de pagamento
+  - Saldo financeiro (realizado)
+  - Pendente a receber
   - Próximo jogo
   - Ranking de rolinhos
   - Ranking de mais presentes
   - Ranking de menos presentes (baixa frequência)
   - Lista de atletas mensalistas
+  - Resumo financeiro com pendentes
 
 - 👥 **Cadastro de atletas**
   - Nome
@@ -25,13 +26,19 @@ Sistema web completo, responsivo e com visual profissional para **gestão de atl
   - Busca e filtros
 
 - ✅ **Presença & pagamentos**
-  - Cadastro de jogos
+  - Cadastro, edição e exclusão de jogos
   - Data, horário e local
   - Valor por atleta
-  - Presença individual
-  - Status de pagamento: **Pago**, **Pendente**, **Isento** e **Mensalista**
-  - Registro de multa
-  - Resumo financeiro da partida (incluindo contagem de mensalistas)
+  - Presença individual (checkbox Presente + botão Faltou)
+  - Status de pagamento: **Pago**, **Pendente**, **Isento**, **Mensalista**, **Multa**
+  - Registro de multa (valor)
+  - Ao selecionar **Pago**, o campo multa é preenchido automaticamente com o valor do jogo (se estiver zerado)
+  - Botões para ordenar atletas A-Z e Z-A
+  - Caixa do jogo com:
+    - Valor total pago
+    - Valor total de multas
+    - Valor pendente
+    - Total geral (sem pendente)
 
 - ⚽ **Sorteio de times**
   - Escolha de atletas por time
@@ -54,10 +61,12 @@ Sistema web completo, responsivo e com visual profissional para **gestão de atl
   - Histórico com exclusão de registros
 
 - 💰 **Financeiro**
-  - Receitas e despesas
-  - Categorias: Jogo, Locação, Churrasco, Material esportivo, Multa, **Mensalidade**, Outro
-  - Saldo
+  - Receitas e despesas (lançamentos manuais)
+  - Categorias: Jogo, Locação, Churrasco, Material esportivo, Multa, Mensalidade, Outro
+  - Saldo realizado
+  - Pendente a receber (calculado automaticamente a partir dos jogos)
   - Filtros por tipo e categoria
+  - A receita total **não inclui** valores pendentes
 
 - 💾 **Dados**
   - Persistência automática via `localStorage`
