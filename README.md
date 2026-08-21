@@ -8,15 +8,19 @@ Sistema web completo, responsivo e com visual profissional para **gestão de atl
 
 - 📊 **Dashboard** com visão geral de atletas, presenças, saldo e pendentes.
 - 👥 **Cadastro de atletas** com posição (inclui Zagueiro), qualidade e assiduidade.
-- ✅ **Presença & pagamentos** com checkboxes lado a lado para **Presente** e **Faltou**, ordenação A-Z/Z-A, status de pagamento (Pago, Pendente, Isento, Mensalista, Multa) e resumo financeiro do jogo (valores pagos, multas, pendentes, mensalistas e total).
+- ✅ **Presença & pagamentos**
+  - Checkboxes lado a lado para **Presente** e **Faltou** – ambos iniciam desmarcados; o administrador deve marcar a opção correta.
+  - Ordenação A-Z/Z-A.
+  - Status de pagamento: Pago, Pendente, Isento, Mensalista, Multa.
+  - Resumo financeiro do jogo em uma linha: Pagos, Multas, Pendentes, Total e Mensalistas.
 - ⚽ **Sorteio de times** equilibrado por posição e qualidade.
 - 😅 **Rolinho** com ranking e matriz de confrontos.
 - 💰 **Financeiro** com lançamentos manuais e cálculo automático de receitas (exclui pendentes e mensalistas).
 - 💾 **Persistência** via localStorage, com exportação e importação de backup.
 
-## Layout
+## Layout responsivo
 
-O sistema é **totalmente responsivo**, adaptando-se a telas de desktop e celular, com barra lateral colapsável em dispositivos móveis.
+O sistema se adapta a desktop, tablet e celular, com barra lateral colapsável em dispositivos móveis.
 
 ## Como usar
 
@@ -24,7 +28,7 @@ O sistema é **totalmente responsivo**, adaptando-se a telas de desktop e celula
 2. Crie um jogo em **Presença & pagamentos**.
 3. Marque presença com os checkboxes **Presente** ou **Faltou** (eles se alternam automaticamente).
 4. Selecione o status de pagamento e opcionalmente uma multa.
-5. Acompanhe o resumo financeiro do jogo.
+5. Acompanhe o resumo financeiro do jogo em linha única.
 6. Realize sorteios, registre rolinhos e controle o caixa geral.
 
 ## Tecnologias
