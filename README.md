@@ -35,10 +35,12 @@ Sistema web completo, responsivo e com visual profissional para **gestão de atl
   - Ao selecionar **Pago**, o campo multa é preenchido automaticamente com o valor do jogo (se estiver zerado)
   - Botões para ordenar atletas A-Z e Z-A
   - Caixa do jogo com:
-    - Valor total pago
-    - Valor total de multas
-    - Valor pendente
-    - Total geral (sem pendente)
+    - Valor total pago (apenas status Pago)
+    - Valor total de multas (soma de todas as multas)
+    - Valor pendente (status Pendente)
+    - Contagem de mensalistas
+    - Total geral (Pago + Multas, sem pendente)
+  - Mensalistas **não** são contabilizados como receita do jogo (já pagaram mensalidade)
 
 - ⚽ **Sorteio de times**
   - Escolha de atletas por time
@@ -66,7 +68,7 @@ Sistema web completo, responsivo e com visual profissional para **gestão de atl
   - Saldo realizado
   - Pendente a receber (calculado automaticamente a partir dos jogos)
   - Filtros por tipo e categoria
-  - A receita total **não inclui** valores pendentes
+  - A receita total **não inclui** valores pendentes nem mensalistas
 
 - 💾 **Dados**
   - Persistência automática via `localStorage`
