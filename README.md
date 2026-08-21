@@ -29,7 +29,7 @@ Sistema web completo, responsivo e com visual profissional para **gestão de atl
   - Cadastro, edição e exclusão de jogos
   - Data, horário e local
   - Valor por atleta
-  - Presença individual (checkbox Presente + botão Faltou)
+  - Presença individual (checkbox Presente + botão Faltou bem visível)
   - Status de pagamento: **Pago**, **Pendente**, **Isento**, **Mensalista**, **Multa**
   - Registro de multa (valor)
   - Ao selecionar **Pago**, o campo multa é preenchido automaticamente com o valor do jogo (se estiver zerado)
@@ -75,11 +75,45 @@ Sistema web completo, responsivo e com visual profissional para **gestão de atl
   - Exportação de backup em JSON
   - Importação de backup em JSON
 
-## Estrutura
+## Como usar
 
-```text
-futebol-manager/
-├── index.html
-├── style.css
-├── app.js
-└── README.md
+### 1. Cadastre os atletas
+
+Abra **Atletas → Novo atleta**.
+
+Informe nome, posição e qualidade.
+
+### 2. Cadastre o jogo
+
+Abra **Presença & pagamentos → Registrar jogo**.
+
+### 3. Marque presença e pagamentos
+
+- Marque **Presente** para cada atleta.
+- Use o botão **❌ Faltou** (visível e estilizado em vermelho) para marcar ausência.
+- Selecione o status de pagamento.
+- Acompanhe o resumo do caixa.
+
+### 4. Sorteie os times
+
+Abra **Sorteio de times** e configure.
+
+### 5. Registre rolinhos
+
+Abra **Rolinho → Registrar rolinho**.
+
+### 6. Controle o caixa
+
+Em **Financeiro**, lance receitas e despesas.
+
+## Tecnologias
+
+- HTML5
+- CSS3
+- JavaScript ES6+
+- LocalStorage
+- Google Fonts
+
+## Licença
+
+Projeto livre para estudo e personalização.
