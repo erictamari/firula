@@ -4,8 +4,9 @@
 
   // ========== CONSTANTES ==========
   const STORAGE_KEY = "futebol-manager-v1";
-  const POSITIONS = ["Goleiro", "Lateral", "Volante", "Meio-campo", "Atacante"];
-  const CATEGORIES = ["Jogo", "Locação", "Churrasco", "Material esportivo", "Multa", "Outro"];
+  const POSITIONS = ["Goleiro", "Zagueiro", "Lateral", "Volante", "Meio-campo", "Atacante"];
+  const CATEGORIES = ["Jogo", "Locação", "Churrasco", "Material esportivo", "Multa", "Mensalidade", "Outro"];
+  const PAYMENT_STATUS = ["paid", "pending", "exempt", "mensalista"]; // novos status
 
   // ========== SEED ==========
   const todayISO = () => new Date().toISOString().slice(0, 10);
@@ -36,7 +37,7 @@
   const dateBR = iso => iso ? new Date(iso + "T12:00:00").toLocaleDateString("pt-BR") : "—";
   const uid = prefix => prefix + Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
   const escapeHTML = value => String(value ?? "").replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }[c]));
-  const clone = obj => JSON.parse(JSON.stringify(obj)); // fallback para structuredClone
+  const clone = obj => JSON.parse(JSON.stringify(obj));
 
   // ========== ESTADO ==========
   let state = load();
@@ -146,7 +147,8 @@
     }
 
     renderRolinhoRanking("#rolinhoRanking", 5);
-    renderAttendanceRanking("#attendanceRanking", 5);
+    renderAttendanceRanking("#attendanceRanking", 5, false); // mais presentes
+    renderAttendanceRanking("#attendanceRankingLow", 5, true); // menos presentes
 
     const finSum = document.getElementById("financeSummary");
     if (finSum) {
@@ -156,25 +158,47 @@
         <div class="leader-row"><div>Σ</div><div><strong>Saldo</strong></div><b>${money(income - expense)}</b></div>
       `;
     }
+
+    // Resumo de mensalistas: atletas que têm status "mensalista" em algum jogo
+    const mensalistas = new Set();
+    state.games.forEach(g => {
+      if (g.attendance) {
+        Object.entries(g.attendance).forEach(([id, rec]) => {
+          if (rec.status === "mensalista") mensalistas.add(id);
+        });
+      }
+    });
+    const mensalistasList = activeAthletes().filter(a => mensalistas.has(a.id));
+    const mensalEl = document.getElementById("mensalistasSummary");
+    if (mensalEl) {
+      if (mensalistasList.length) {
+        mensalEl.innerHTML = mensalistasList.map(a =>
+          `<div class="leader-row"><div>•</div><div><strong>${escapeHTML(a.name)}</strong></div><b>${a.position}</b></div>`
+        ).join("");
+      } else {
+        mensalEl.innerHTML = `<div class="empty-state">Nenhum atleta marcado como mensalista.</div>`;
+      }
+    }
   }
 
   function statCard(label, value, hint = "", cls = "") {
     return `<div class="stat"><div class="label">${label}</div><div class="value ${cls}">${value}</div><div class="hint">${hint}</div></div>`;
   }
 
-  function renderAttendanceRanking(selector, limit = 5) {
+  function renderAttendanceRanking(selector, limit = 5, low = false) {
     const el = typeof selector === "string" ? document.querySelector(selector) : selector;
     if (!el) return;
     const list = activeAthletes().map(a => {
       const games = state.games.filter(g => g.attendance?.[a.id]?.present).length;
       const pct = state.games.length ? Math.round(games / state.games.length * 100) : 0;
       return { ...a, games, pct };
-    }).sort((a, b) => b.pct - a.pct).slice(0, limit);
-
-    const max = list[0]?.pct || 1;
-    el.innerHTML = list.length ?
-      list.map((a, i) =>
-        `<div class="leader-row"><div class="rank">${i + 1}</div><div><strong>${escapeHTML(a.name)}</strong><div class="bar"><i style="width:${a.pct / max * 100}%"></i></div></div><b>${a.pct}%</b></div>`
+    });
+    list.sort((a, b) => low ? a.pct - b.pct : b.pct - a.pct);
+    const top = list.slice(0, limit);
+    const max = low ? (top[top.length-1]?.pct || 1) : (top[0]?.pct || 1);
+    el.innerHTML = top.length ?
+      top.map((a, i) =>
+        `<div class="leader-row"><div class="rank">${i + 1}</div><div><strong>${escapeHTML(a.name)}</strong><div class="bar"><i style="width:${low ? (a.pct / (max || 1) * 100) : (a.pct / (max || 1) * 100)}%"></i></div></div><b>${a.pct}%</b></div>`
       ).join("") :
       `<div class="empty-state">Sem registros de presença ainda.</div>`;
   }
@@ -241,7 +265,12 @@
       return `<div class="presence-row">
         <div class="presence-player"><div class="mini-avatar">${initials(a.name)}</div><div><strong>${escapeHTML(a.name)}</strong><div class="player-pos">${a.position} · ${a.quality}/10</div></div></div>
         <label class="switch"><input type="checkbox" class="presence-check" data-id="${a.id}" ${rec.present ? "checked" : ""}> Presente</label>
-        <select class="input pay-select payment-status" data-id="${a.id}"><option value="paid" ${rec.status === "paid" ? "selected" : ""}>Pago</option><option value="pending" ${rec.status === "pending" ? "selected" : ""}>Pendente</option><option value="exempt" ${rec.status === "exempt" ? "selected" : ""}>Isento</option></select>
+        <select class="input pay-select payment-status" data-id="${a.id}">
+          <option value="paid" ${rec.status === "paid" ? "selected" : ""}>Pago</option>
+          <option value="pending" ${rec.status === "pending" ? "selected" : ""}>Pendente</option>
+          <option value="exempt" ${rec.status === "exempt" ? "selected" : ""}>Isento</option>
+          <option value="mensalista" ${rec.status === "mensalista" ? "selected" : ""}>Mensalista</option>
+        </select>
         <input class="input pay-select fine-input" type="number" min="0" step=".01" data-id="${a.id}" value="${rec.fine || 0}" title="Multa">
       </div>`;
     }).join("");
@@ -251,16 +280,18 @@
 
   function renderGamePaymentSummary(game) {
     const rows = activeAthletes().map(a => game.attendance?.[a.id]).filter(Boolean);
-    const paid = rows.filter(x => x.status === "paid").length;
+    const paid = rows.filter(x => x.status === "paid" || x.status === "mensalista").length;
     const pending = rows.filter(x => x.status === "pending").length;
+    const mensalistas = rows.filter(x => x.status === "mensalista").length;
     const fines = rows.reduce((s, x) => s + Number(x.fine || 0), 0);
 
     const el = document.getElementById("gamePaymentSummary");
     if (!el) return;
     el.innerHTML = `
-      <div class="stats-grid" style="grid-template-columns:1fr 1fr">
+      <div class="stats-grid" style="grid-template-columns:1fr 1fr 1fr">
         <div class="stat"><div class="label">Pagos</div><div class="value positive">${paid}</div></div>
         <div class="stat"><div class="label">Pendentes</div><div class="value ${pending ? "warning" : "positive"}">${pending}</div></div>
+        <div class="stat"><div class="label">Mensalistas</div><div class="value">${mensalistas}</div></div>
       </div>
       <div class="leader-row"><div>R$</div><div><strong>Multas registradas</strong></div><b>${money(fines)}</b></div>
     `;
@@ -282,7 +313,7 @@
 
     const teams = Array.from({ length: count }, () => []);
     const mode = document.getElementById("drawMode")?.value || "balanced";
-    const posWeight = { Goleiro: 0, Lateral: 1, Volante: 2, "Meio-campo": 3, Atacante: 4 };
+    const posWeight = { Goleiro: 0, Zagueiro: 1, Lateral: 2, Volante: 3, "Meio-campo": 4, Atacante: 5 };
 
     players.sort((a, b) => mode === "quality" ? b.quality - a.quality : Math.random() - 0.5);
     if (mode !== "quality") {
@@ -486,7 +517,6 @@
         showToast(a ? "Atleta atualizado." : "Atleta cadastrado.");
       };
     }
-    // close modal
     document.querySelectorAll(".close-modal").forEach(btn => btn.onclick = closeModal);
   }
 
