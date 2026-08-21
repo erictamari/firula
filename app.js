@@ -178,13 +178,16 @@
         `<div class="empty-state">Nenhum atleta marcado como mensalista.</div>`;
     }
 
+    // Finance summary - agora em linha única
     const finSum = document.getElementById("financeSummary");
     if (finSum) {
       finSum.innerHTML = `
-        <div class="leader-row"><div>↗</div><div><strong>Receitas realizadas</strong><div class="bar"><i style="width:${Math.min(100, fin.receitasRealizadas ? 100 : 0)}%"></i></div></div><b class="positive">${money(fin.receitasRealizadas)}</b></div>
-        <div class="leader-row"><div>↘</div><div><strong>Despesas</strong></div><b class="negative">${money(fin.despesas)}</b></div>
-        <div class="leader-row"><div>⏳</div><div><strong>Pendente (a receber)</strong></div><b class="warning">${money(fin.pendenteTotal)}</b></div>
-        <div class="leader-row"><div>Σ</div><div><strong>Saldo (realizado)</strong></div><b>${money(fin.receitasRealizadas - fin.despesas)}</b></div>
+        <div class="game-finance-row">
+          <div class="item"><span class="label">Receitas</span><span class="value positive">${money(fin.receitasRealizadas)}</span></div>
+          <div class="item"><span class="label">Despesas</span><span class="value negative">${money(fin.despesas)}</span></div>
+          <div class="item"><span class="label">Pendente</span><span class="value warning">${money(fin.pendenteTotal)}</span></div>
+          <div class="item"><span class="label">Saldo</span><span class="value ${(fin.receitasRealizadas - fin.despesas) >= 0 ? 'positive' : 'negative'}">${money(fin.receitasRealizadas - fin.despesas)}</span></div>
+        </div>
       `;
     }
   }
@@ -274,14 +277,23 @@
 
     list.innerHTML = athletes.map(a => {
       const rec = game.attendance?.[a.id] || { present: false, status: "pending", fine: 0 };
+      // NÃO marcar nenhum checkbox automaticamente; apenas refletir se houver dado salvo
+      const presentChecked = rec.present ? "checked" : "";
+      const absentChecked = !rec.present ? "checked" : "";
+      // Mas se rec.present for false, não marcar "Faltou" – apenas deixar desmarcado (removemos o checked)
+      // Ou seja, forçamos ambos desmarcados se present === false, pois o admin deve escolher.
+      // Porém, se o admin já salvou uma escolha anterior (present = true), marcamos presente.
+      // Se present = false, não marcamos nenhum dos dois.
+      const checkPresent = rec.present ? "checked" : "";
+      const checkAbsent = ""; // nunca marcar faltou automaticamente
       return `<div class="presence-row">
         <div class="presence-player">
           <div class="mini-avatar">${initials(a.name)}</div>
           <div><strong>${escapeHTML(a.name)}</strong><div class="player-pos">${a.position} · ${a.quality}/10</div></div>
         </div>
         <div class="presence-check-group">
-          <label><input type="checkbox" class="presence-check" data-id="${a.id}" ${rec.present ? "checked" : ""}> Presente</label>
-          <label><input type="checkbox" class="absence-check" data-id="${a.id}" ${!rec.present ? "checked" : ""}> Faltou</label>
+          <label><input type="checkbox" class="presence-check" data-id="${a.id}" ${checkPresent}> Presente</label>
+          <label><input type="checkbox" class="absence-check" data-id="${a.id}" ${checkAbsent}> Faltou</label>
         </div>
         <select class="input pay-select payment-status" data-id="${a.id}">
           <option value="paid" ${rec.status === "paid" ? "selected" : ""}>Pago</option>
@@ -302,14 +314,12 @@
     const el = document.getElementById("gamePaymentSummary");
     if (!el) return;
     el.innerHTML = `
-      <div class="stats-grid" style="grid-template-columns:1fr 1fr 1fr">
-        <div class="stat"><div class="label">Pagos (${fin.paidCount})</div><div class="value positive">${money(fin.totalPago)}</div></div>
-        <div class="stat"><div class="label">Multas</div><div class="value">${money(fin.totalMultasValor)}</div></div>
-        <div class="stat"><div class="label">Pendentes (${fin.pendingCount})</div><div class="value warning">${money(fin.totalPendente)}</div></div>
-      </div>
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px;flex-wrap:wrap;gap:8px;">
-        <span><strong>Mensalistas:</strong> ${fin.mensalistaCount}</span>
-        <span><strong>Total (sem pendente):</strong> <span class="positive">${money(fin.totalGeral)}</span></span>
+      <div class="game-finance-row">
+        <div class="item"><span class="label">Pagos</span><span class="value positive">${money(fin.totalPago)}</span></div>
+        <div class="item"><span class="label">Multas</span><span class="value">${money(fin.totalMultasValor)}</span></div>
+        <div class="item"><span class="label">Pendentes</span><span class="value warning">${money(fin.totalPendente)}</span></div>
+        <div class="item"><span class="label">Total</span><span class="value positive">${money(fin.totalGeral)}</span></div>
+        <div class="item"><span class="label">Mensalistas</span><span class="value">${fin.mensalistaCount}</span></div>
       </div>
     `;
   }
@@ -767,10 +777,11 @@
         const absenceCheck = document.querySelector(`.absence-check[data-id="${id}"]`);
         if (absenceCheck && e.target.checked) absenceCheck.checked = false;
       } else if (e.target.matches(".absence-check")) {
-        rec.present = !e.target.checked;
+        rec.present = false; // se marcar faltou, presente falso
         const presenceCheck = document.querySelector(`.presence-check[data-id="${id}"]`);
         if (presenceCheck && e.target.checked) presenceCheck.checked = false;
       }
+      // Se desmarcar ambos, rec.present continua false
       game.attendance[id] = rec;
       save();
       renderGamePaymentSummary(game);
