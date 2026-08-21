@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Futebol Manager — gestão de atletas, presença, pagamentos, sorteio equilibrado de times, rolinhos e financeiro." />
+  <title>Futebol Manager</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700;800&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar" id="sidebar">
+      <div class="brand">
+        <div class="brand-ball">⚽</div>
+        <div>
+          <strong>FUTEBOL<span>MANAGER</span></strong>
+          <small>Gestão da pelada</small>
+        </div>
+      </div>
+
+      <nav class="main-nav">
+        <button class="nav-item active" data-page="dashboard"><span>▦</span> Dashboard</button>
+        <button class="nav-item" data-page="atletas"><span>♟</span> Atletas</button>
+        <button class="nav-item" data-page="presenca"><span>✓</span> Presença & pagamentos</button>
+        <button class="nav-item" data-page="sorteio"><span>⚽</span> Sorteio de times</button>
+        <button class="nav-item" data-page="rolinho"><span>〰</span> Rolinho</button>
+        <button class="nav-item" data-page="financeiro"><span>R$</span> Financeiro</button>
+      </nav>
+
+      <div class="sidebar-footer">
+        <div class="pitch-mini">
+          <span></span><span></span><span></span>
+        </div>
+        <small>Seus dados ficam salvos<br>neste navegador.</small>
+      </div>
+    </aside>
+
+    <main class="main">
+      <header class="topbar">
+        <button class="mobile-menu" id="mobileMenu">☰</button>
+        <div>
+          <p class="eyebrow">CENTRAL DO FUTEBOL</p>
+          <h1 id="pageTitle">Dashboard</h1>
+        </div>
+        <div class="top-actions">
+          <button class="btn btn-secondary" id="exportBtn">Exportar dados</button>
+          <label class="btn btn-secondary file-btn">
+            Importar
+            <input type="file" id="importInput" accept=".json" hidden>
+          </label>
+          <button class="avatar">FM</button>
+        </div>
+      </header>
+
+      <section class="page active" id="page-dashboard">
+        <div class="hero">
+          <div>
+            <p class="eyebrow">TEMPORADA ATUAL</p>
+            <h2>Jogue. Organize.<br><em>Equilibre.</em></h2>
+            <p>Controle atletas, presença, pagamentos, rolinhos e monte times equilibrados em poucos cliques.</p>
+          </div>
+          <div class="hero-ball">⚽</div>
+        </div>
+
+        <div class="stats-grid" id="dashboardStats"></div>
+
+        <div class="content-grid two">
+          <article class="card">
+            <div class="card-head">
+              <div><p class="eyebrow">PRÓXIMO JOGO</p><h3 id="nextGameTitle">Nenhum jogo agendado</h3></div>
+              <button class="icon-btn" data-page-target="presenca">→</button>
+            </div>
+            <div id="nextGameBox" class="empty-state compact"></div>
+          </article>
+
+          <article class="card">
+            <div class="card-head">
+              <div><p class="eyebrow">RANKING DE ROLINHOS</p><h3>Quem está voando?</h3></div>
+              <button class="icon-btn" data-page-target="rolinho">→</button>
+            </div>
+            <div id="rolinhoRanking"></div>
+          </article>
+        </div>
+
+        <div class="content-grid two">
+          <article class="card">
+            <div class="card-head"><div><p class="eyebrow">ASSIDUIDADE</p><h3>Atletas mais presentes</h3></div></div>
+            <div id="attendanceRanking"></div>
+          </article>
+          <article class="card">
+            <div class="card-head"><div><p class="eyebrow">FINANCEIRO</p><h3>Resumo do mês</h3></div></div>
+            <div id="financeSummary"></div>
+          </article>
+        </div>
+      </section>
+
+      <section class="page" id="page-atletas">
+        <div class="section-head">
+          <div><p class="eyebrow">ELENCO</p><h2>Atletas</h2><p>Cadastre posição, qualidade e acompanhe a assiduidade.</p></div>
+          <button class="btn btn-primary" id="newAthleteBtn">+ Novo atleta</button>
+        </div>
+        <div class="toolbar card">
+          <input class="input" id="athleteSearch" placeholder="Buscar atleta..." />
+          <select class="input" id="positionFilter">
+            <option value="">Todas as posições</option>
+            <option>Goleiro</option><option>Lateral</option><option>Volante</option><option>Meio-campo</option><option>Atacante</option>
+          </select>
+          <select class="input" id="qualityFilter">
+            <option value="">Qualquer qualidade</option>
+            <option value="10">10</option><option value="9">9+</option><option value="8">8+</option><option value="7">7+</option><option value="6">6+</option>
+          </select>
+        </div>
+        <div class="card table-card">
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Atleta</th><th>Posição</th><th>Qualidade</th><th>Jogos</th><th>Presença</th><th>Status</th><th></th></tr></thead>
+              <tbody id="athletesTable"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <section class="page" id="page-presenca">
+        <div class="section-head">
+          <div><p class="eyebrow">DIA DE JOGO</p><h2>Presença & pagamentos</h2><p>Marque presença e confira pagamento, multa e pendências.</p></div>
+          <button class="btn btn-primary" id="newGameBtn">+ Registrar jogo</button>
+        </div>
+        <div class="game-selector card">
+          <div>
+            <label>Jogo selecionado</label>
+            <select class="input" id="gameSelect"></select>
+          </div>
+          <div id="gameMeta"></div>
+        </div>
+        <div class="presence-layout">
+          <article class="card">
+            <div class="card-head"><div><p class="eyebrow">CONFIRMAÇÃO</p><h3>Atletas presentes</h3></div><button class="btn btn-secondary" id="markAllPresent">Marcar todos</button></div>
+            <div id="presenceList"></div>
+          </article>
+          <article class="card">
+            <div class="card-head"><div><p class="eyebrow">CAIXA DO JOGO</p><h3>Pagamentos & multas</h3></div></div>
+            <div id="gamePaymentSummary"></div>
+          </article>
+        </div>
+      </section>
+
+      <section class="page" id="page-sorteio">
+        <div class="section-head">
+          <div><p class="eyebrow">ESCALAÇÃO</p><h2>Sorteio de times</h2><p>Monte equipes equilibradas considerando posição e nota de cada atleta.</p></div>
+        </div>
+        <div class="draw-config card">
+          <div class="field"><label>Atletas por time</label><input class="input" type="number" id="playersPerTeam" value="5" min="2" max="20"></div>
+          <div class="field"><label>Quantidade de times</label><input class="input" type="number" id="teamCount" value="2" min="2" max="8"></div>
+          <div class="field"><label>Critério</label><select class="input" id="drawMode"><option value="balanced">Equilíbrio máximo</option><option value="quality">Priorizar qualidade</option><option value="position">Priorizar posições</option></select></div>
+          <div class="field check-field"><label><input type="checkbox" id="onlyPresent" checked> Usar apenas presentes</label></div>
+          <button class="btn btn-primary" id="drawBtn">⚽ Sortear times</button>
+        </div>
+        <div id="drawWarnings"></div>
+        <div id="teamsResult" class="teams-grid"></div>
+      </section>
+
+      <section class="page" id="page-rolinho">
+        <div class="section-head">
+          <div><p class="eyebrow">HABILIDADE</p><h2>Rolinho</h2><p>Registre quem deu e quem tomou o famoso drible entre as pernas.</p></div>
+          <button class="btn btn-primary" id="newNutmegBtn">+ Registrar rolinho</button>
+        </div>
+        <div class="stats-grid" id="rolinhoStats"></div>
+        <div class="content-grid two">
+          <article class="card">
+            <div class="card-head"><div><p class="eyebrow">CONFRONTOS</p><h3>Histórico</h3></div></div>
+            <div class="table-wrap"><table><thead><tr><th>Quem deu</th><th>Quem tomou</th><th>Data</th><th></th></tr></thead><tbody id="nutmegTable"></tbody></table></div>
+          </article>
+          <article class="card">
+            <div class="card-head"><div><p class="eyebrow">RANKING</p><h3>Rolinho por atleta</h3></div></div>
+            <div id="nutmegLeaderboard"></div>
+          </article>
+        </div>
+        <div class="card">
+          <div class="card-head"><div><p class="eyebrow">CONFRONTO DIRETO</p><h3>Quem mais tomou de quem?</h3></div></div>
+          <div id="nutmegMatrix" class="matrix-wrap"></div>
+        </div>
+      </section>
+
+      <section class="page" id="page-financeiro">
+        <div class="section-head">
+          <div><p class="eyebrow">CAIXA</p><h2>Financeiro</h2><p>Controle pagamentos dos jogos e custos de locação, churrasco e material esportivo.</p></div>
+          <button class="btn btn-primary" id="newTransactionBtn">+ Lançamento</button>
+        </div>
+        <div class="stats-grid" id="financeStats"></div>
+        <div class="toolbar card">
+          <select class="input" id="financeTypeFilter"><option value="">Todos os lançamentos</option><option value="income">Receitas</option><option value="expense">Despesas</option></select>
+          <select class="input" id="financeCategoryFilter"><option value="">Todas as categorias</option><option>Jogo</option><option>Locação</option><option>Churrasco</option><option>Material esportivo</option><option>Multa</option><option>Outro</option></select>
+        </div>
+        <div class="card table-card">
+          <div class="table-wrap"><table><thead><tr><th>Descrição</th><th>Categoria</th><th>Data</th><th>Tipo</th><th>Valor</th><th></th></tr></thead><tbody id="financeTable"></tbody></table></div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <div class="modal-backdrop" id="modalBackdrop">
+    <div class="modal" id="modal"></div>
+  </div>
+  <div class="toast-container" id="toastContainer"></div>
+  <script src="app.js"></script>
+</body>
+</html>
