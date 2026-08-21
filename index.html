@@ -87,12 +87,23 @@
 
         <div class="content-grid two">
           <article class="card">
-            <div class="card-head"><div><p class="eyebrow">ASSIDUIDADE</p><h3>Atletas mais presentes</h3></div></div>
+            <div class="card-head"><div><p class="eyebrow">ASSIDUIDADE</p><h3>Mais presentes</h3></div></div>
             <div id="attendanceRanking"></div>
           </article>
           <article class="card">
+            <div class="card-head"><div><p class="eyebrow">BAIXA FREQUÊNCIA</p><h3>Menos presentes</h3></div></div>
+            <div id="attendanceRankingLow"></div>
+          </article>
+        </div>
+
+        <div class="content-grid two">
+          <article class="card">
             <div class="card-head"><div><p class="eyebrow">FINANCEIRO</p><h3>Resumo do mês</h3></div></div>
             <div id="financeSummary"></div>
+          </article>
+          <article class="card">
+            <div class="card-head"><div><p class="eyebrow">MENSALISTAS</p><h3>Atletas com mensalidade</h3></div></div>
+            <div id="mensalistasSummary"></div>
           </article>
         </div>
       </section>
@@ -106,7 +117,7 @@
           <input class="input" id="athleteSearch" placeholder="Buscar atleta..." />
           <select class="input" id="positionFilter">
             <option value="">Todas as posições</option>
-            <option>Goleiro</option><option>Lateral</option><option>Volante</option><option>Meio-campo</option><option>Atacante</option>
+            <option>Goleiro</option><option>Zagueiro</option><option>Lateral</option><option>Volante</option><option>Meio-campo</option><option>Atacante</option>
           </select>
           <select class="input" id="qualityFilter">
             <option value="">Qualquer qualidade</option>
@@ -192,7 +203,7 @@
         <div class="stats-grid" id="financeStats"></div>
         <div class="toolbar card">
           <select class="input" id="financeTypeFilter"><option value="">Todos os lançamentos</option><option value="income">Receitas</option><option value="expense">Despesas</option></select>
-          <select class="input" id="financeCategoryFilter"><option value="">Todas as categorias</option><option>Jogo</option><option>Locação</option><option>Churrasco</option><option>Material esportivo</option><option>Multa</option><option>Outro</option></select>
+          <select class="input" id="financeCategoryFilter"><option value="">Todas as categorias</option><option>Jogo</option><option>Locação</option><option>Churrasco</option><option>Material esportivo</option><option>Multa</option><option>Mensalidade</option><option>Outro</option></select>
         </div>
         <div class="card table-card">
           <div class="table-wrap"><table><thead><tr><th>Descrição</th><th>Categoria</th><th>Data</th><th>Tipo</th><th>Valor</th><th></th></tr></thead><tbody id="financeTable"></tbody></table></div>
