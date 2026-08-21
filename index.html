@@ -20,7 +20,6 @@
           <small>Gestão da pelada</small>
         </div>
       </div>
-
       <nav class="main-nav">
         <button class="nav-item active" data-page="dashboard"><span>▦</span> Dashboard</button>
         <button class="nav-item" data-page="atletas"><span>♟</span> Atletas</button>
@@ -29,11 +28,8 @@
         <button class="nav-item" data-page="rolinho"><span>〰</span> Rolinho</button>
         <button class="nav-item" data-page="financeiro"><span>R$</span> Financeiro</button>
       </nav>
-
       <div class="sidebar-footer">
-        <div class="pitch-mini">
-          <span></span><span></span><span></span>
-        </div>
+        <div class="pitch-mini"><span></span><span></span><span></span></div>
         <small>Seus dados ficam salvos<br>neste navegador.</small>
       </div>
     </aside>
@@ -47,14 +43,12 @@
         </div>
         <div class="top-actions">
           <button class="btn btn-secondary" id="exportBtn">Exportar dados</button>
-          <label class="btn btn-secondary file-btn">
-            Importar
-            <input type="file" id="importInput" accept=".json" hidden>
-          </label>
+          <label class="btn btn-secondary file-btn">Importar <input type="file" id="importInput" accept=".json" hidden></label>
           <button class="avatar">FM</button>
         </div>
       </header>
 
+      <!-- DASHBOARD -->
       <section class="page active" id="page-dashboard">
         <div class="hero">
           <div>
@@ -64,9 +58,7 @@
           </div>
           <div class="hero-ball">⚽</div>
         </div>
-
         <div class="stats-grid" id="dashboardStats"></div>
-
         <div class="content-grid two">
           <article class="card">
             <div class="card-head">
@@ -75,7 +67,6 @@
             </div>
             <div id="nextGameBox" class="empty-state compact"></div>
           </article>
-
           <article class="card">
             <div class="card-head">
               <div><p class="eyebrow">RANKING DE ROLINHOS</p><h3>Quem está voando?</h3></div>
@@ -84,7 +75,6 @@
             <div id="rolinhoRanking"></div>
           </article>
         </div>
-
         <div class="content-grid two">
           <article class="card">
             <div class="card-head"><div><p class="eyebrow">ASSIDUIDADE</p><h3>Mais presentes</h3></div></div>
@@ -95,7 +85,6 @@
             <div id="attendanceRankingLow"></div>
           </article>
         </div>
-
         <div class="content-grid two">
           <article class="card">
             <div class="card-head"><div><p class="eyebrow">FINANCEIRO</p><h3>Resumo do mês</h3></div></div>
@@ -108,6 +97,7 @@
         </div>
       </section>
 
+      <!-- ATLETAS -->
       <section class="page" id="page-atletas">
         <div class="section-head">
           <div><p class="eyebrow">ELENCO</p><h2>Atletas</h2><p>Cadastre posição, qualidade e acompanhe a assiduidade.</p></div>
@@ -134,6 +124,7 @@
         </div>
       </section>
 
+      <!-- PRESENÇA -->
       <section class="page" id="page-presenca">
         <div class="section-head">
           <div><p class="eyebrow">DIA DE JOGO</p><h2>Presença & pagamentos</h2><p>Marque presença e confira pagamento, multa e pendências.</p></div>
@@ -153,10 +144,11 @@
         <div class="presence-controls">
           <button class="btn btn-secondary" id="sortAZ">Ordenar A-Z</button>
           <button class="btn btn-secondary" id="sortZA">Ordenar Z-A</button>
+          <button class="btn btn-secondary" id="markAllPresent">Marcar todos</button>
         </div>
         <div class="presence-layout">
           <article class="card">
-            <div class="card-head"><div><p class="eyebrow">CONFIRMAÇÃO</p><h3>Atletas</h3></div><button class="btn btn-secondary" id="markAllPresent">Marcar todos</button></div>
+            <div class="card-head"><div><p class="eyebrow">CONFIRMAÇÃO</p><h3>Atletas</h3></div></div>
             <div id="presenceList"></div>
           </article>
           <article class="card">
@@ -166,6 +158,7 @@
         </div>
       </section>
 
+      <!-- SORTEIO -->
       <section class="page" id="page-sorteio">
         <div class="section-head">
           <div><p class="eyebrow">ESCALAÇÃO</p><h2>Sorteio de times</h2><p>Monte equipes equilibradas considerando posição e nota de cada atleta.</p></div>
@@ -181,6 +174,7 @@
         <div id="teamsResult" class="teams-grid"></div>
       </section>
 
+      <!-- ROLINHO -->
       <section class="page" id="page-rolinho">
         <div class="section-head">
           <div><p class="eyebrow">HABILIDADE</p><h2>Rolinho</h2><p>Registre quem deu e quem tomou o famoso drible entre as pernas.</p></div>
@@ -203,6 +197,7 @@
         </div>
       </section>
 
+      <!-- FINANCEIRO -->
       <section class="page" id="page-financeiro">
         <div class="section-head">
           <div><p class="eyebrow">CAIXA</p><h2>Financeiro</h2><p>Controle pagamentos dos jogos e custos de locação, churrasco e material esportivo.</p></div>
