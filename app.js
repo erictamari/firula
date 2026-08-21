@@ -2,12 +2,10 @@
 (() => {
   "use strict";
 
-  // ========== CONSTANTES ==========
   const STORAGE_KEY = "futebol-manager-v1";
   const POSITIONS = ["Goleiro", "Zagueiro", "Lateral", "Volante", "Meio-campo", "Atacante"];
   const CATEGORIES = ["Jogo", "Locação", "Churrasco", "Material esportivo", "Multa", "Mensalidade", "Outro"];
 
-  // ========== SEED ==========
   const todayISO = () => new Date().toISOString().slice(0, 10);
   const seed = {
     athletes: [
@@ -29,7 +27,6 @@
     finance: []
   };
 
-  // ========== UTILITÁRIOS ==========
   const $ = (s, root = document) => root.querySelector(s);
   const $$ = (s, root = document) => [...root.querySelectorAll(s)];
   const money = n => new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(Number(n) || 0);
@@ -38,13 +35,11 @@
   const escapeHTML = value => String(value ?? "").replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }[c]));
   const clone = obj => JSON.parse(JSON.stringify(obj));
 
-  // ========== ESTADO ==========
   let state = load();
   let currentPage = "dashboard";
   let selectedGameId = state.games[0]?.id || null;
   let sortOrder = "default";
 
-  // ========== PERSISTÊNCIA ==========
   function load() {
     try {
       const saved = JSON.parse(localStorage.getItem(STORAGE_KEY));
@@ -61,18 +56,10 @@
     } catch (_) { /* ignore */ }
     return clone(seed);
   }
+  function save() { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
 
-  function save() {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-  }
-
-  // ========== HELPERS ==========
-  function athlete(id) {
-    return state.athletes.find(a => a.id === id);
-  }
-  function activeAthletes() {
-    return state.athletes.filter(a => a.active !== false);
-  }
+  function athlete(id) { return state.athletes.find(a => a.id === id); }
+  function activeAthletes() { return state.athletes.filter(a => a.active !== false); }
 
   function showToast(message, type = "success") {
     const t = document.createElement("div");
@@ -83,7 +70,7 @@
     setTimeout(() => t.remove(), 3000);
   }
 
-  // ========== CÁLCULOS FINANCEIROS ==========
+  // Financials
   function getGameFinancials(game) {
     let paidCount = 0, pendingCount = 0, mensalistaCount = 0, multaCount = 0;
     let totalMultas = 0;
@@ -116,27 +103,15 @@
     const manualIncome = state.finance.filter(x => x.type === "income").reduce((s, x) => s + Number(x.amount), 0);
     const manualExpense = state.finance.filter(x => x.type === "expense").reduce((s, x) => s + Number(x.amount), 0);
     const receitasRealizadas = totalPagoGlobal + totalMultasGlobal + manualIncome;
-    return {
-      receitasRealizadas,
-      despesas: manualExpense,
-      pendenteTotal: totalPendenteGlobal,
-      multasTotal: totalMultasGlobal
-    };
+    return { receitasRealizadas, despesas: manualExpense, pendenteTotal: totalPendenteGlobal, multasTotal: totalMultasGlobal };
   }
 
-  // ========== NAVEGAÇÃO ==========
+  // Navigation
   function navigate(page) {
     currentPage = page;
     $$(".nav-item").forEach(b => b.classList.toggle("active", b.dataset.page === page));
     $$(".page").forEach(p => p.classList.toggle("active", p.id === `page-${page}`));
-    const titles = {
-      dashboard: "Dashboard",
-      atletas: "Atletas",
-      presenca: "Presença & pagamentos",
-      sorteio: "Sorteio de times",
-      rolinho: "Rolinho",
-      financeiro: "Financeiro"
-    };
+    const titles = { dashboard: "Dashboard", atletas: "Atletas", presenca: "Presença & pagamentos", sorteio: "Sorteio de times", rolinho: "Rolinho", financeiro: "Financeiro" };
     const titleEl = document.getElementById("pageTitle");
     if (titleEl) titleEl.textContent = titles[page] || "Dashboard";
     const sidebar = document.getElementById("sidebar");
@@ -144,7 +119,6 @@
     renderPage(page);
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
-
   function renderPage(page) {
     switch (page) {
       case "dashboard": renderDashboard(); break;
@@ -156,14 +130,13 @@
     }
   }
 
-  // ========== DASHBOARD ==========
+  // Dashboard
   function renderDashboard() {
     const total = activeAthletes().length;
     const next = [...state.games].filter(g => g.date >= todayISO()).sort((a, b) => a.date.localeCompare(b.date))[0];
     const totalPresence = activeAthletes().reduce((s, a) => s + a.present, 0);
     const avg = total ? Math.round(totalPresence / total) : 0;
     const fin = getOverallFinancials();
-    const pendingCount = state.games.reduce((sum, g) => sum + Object.values(g.attendance || {}).filter(x => x?.status === "pending").length, 0);
 
     const statsEl = document.getElementById("dashboardStats");
     if (statsEl) {
@@ -200,13 +173,9 @@
     const mensalistasList = activeAthletes().filter(a => mensalistas.has(a.id));
     const mensalEl = document.getElementById("mensalistasSummary");
     if (mensalEl) {
-      if (mensalistasList.length) {
-        mensalEl.innerHTML = mensalistasList.map(a =>
-          `<div class="leader-row"><div>•</div><div><strong>${escapeHTML(a.name)}</strong></div><b>${a.position}</b></div>`
-        ).join("");
-      } else {
-        mensalEl.innerHTML = `<div class="empty-state">Nenhum atleta marcado como mensalista.</div>`;
-      }
+      mensalEl.innerHTML = mensalistasList.length ?
+        mensalistasList.map(a => `<div class="leader-row"><div>•</div><div><strong>${escapeHTML(a.name)}</strong></div><b>${a.position}</b></div>`).join("") :
+        `<div class="empty-state">Nenhum atleta marcado como mensalista.</div>`;
     }
 
     const finSum = document.getElementById("financeSummary");
@@ -242,7 +211,7 @@
       `<div class="empty-state">Sem registros de presença ainda.</div>`;
   }
 
-  // ========== ATLETAS ==========
+  // Athletes
   function renderAthletes() {
     const q = (document.getElementById("athleteSearch")?.value || "").toLowerCase();
     const pos = document.getElementById("positionFilter")?.value || "";
@@ -276,7 +245,7 @@
     return (name || "?").split(" ").slice(0, 2).map(x => x[0]).join("").toUpperCase();
   }
 
-  // ========== PRESENÇA ==========
+  // Presence
   function renderPresence() {
     const select = document.getElementById("gameSelect");
     if (!select) return;
@@ -310,9 +279,9 @@
           <div class="mini-avatar">${initials(a.name)}</div>
           <div><strong>${escapeHTML(a.name)}</strong><div class="player-pos">${a.position} · ${a.quality}/10</div></div>
         </div>
-        <div class="presence-actions">
-          <label class="switch"><input type="checkbox" class="presence-check" data-id="${a.id}" ${rec.present ? "checked" : ""}> Presente</label>
-          <button class="absence-btn" data-id="${a.id}" title="Marcar como faltou">❌ Faltou</button>
+        <div class="presence-check-group">
+          <label><input type="checkbox" class="presence-check" data-id="${a.id}" ${rec.present ? "checked" : ""}> Presente</label>
+          <label><input type="checkbox" class="absence-check" data-id="${a.id}" ${!rec.present ? "checked" : ""}> Faltou</label>
         </div>
         <select class="input pay-select payment-status" data-id="${a.id}">
           <option value="paid" ${rec.status === "paid" ? "selected" : ""}>Pago</option>
@@ -345,7 +314,7 @@
     `;
   }
 
-  // ========== SORTEIO ==========
+  // Teams Draw
   function drawTeams() {
     const per = Math.max(2, Number(document.getElementById("playersPerTeam")?.value) || 5);
     const count = Math.max(2, Number(document.getElementById("teamCount")?.value) || 2);
@@ -405,7 +374,7 @@
     }
   }
 
-  // ========== ROLINHO ==========
+  // Rolinho
   function rolinhoCounts() {
     const given = {}, taken = {};
     state.rolinhos.forEach(r => {
@@ -477,7 +446,7 @@
       `<div class="empty-state">Cadastre atletas para visualizar o confronto direto.</div>`;
   }
 
-  // ========== FINANCEIRO ==========
+  // Finance
   function renderFinance() {
     const fin = getOverallFinancials();
     const statsEl = document.getElementById("financeStats");
@@ -513,7 +482,7 @@
     }
   }
 
-  // ========== MODAIS ==========
+  // Modals
   function openModal(html) {
     const modal = document.getElementById("modal");
     const backdrop = document.getElementById("modalBackdrop");
@@ -693,7 +662,7 @@
     document.querySelectorAll(".close-modal").forEach(btn => btn.onclick = closeModal);
   }
 
-  // ========== EVENTOS GLOBAIS ==========
+  // Events
   document.addEventListener("click", e => {
     const nav = e.target.closest(".nav-item");
     if (nav) return navigate(nav.dataset.page);
@@ -745,21 +714,6 @@
       }
     }
 
-    const absenceBtn = e.target.closest(".absence-btn");
-    if (absenceBtn) {
-      const id = absenceBtn.dataset.id;
-      const game = state.games.find(x => x.id === selectedGameId);
-      if (game) {
-        game.attendance = game.attendance || {};
-        const rec = game.attendance[id] || { present: false, status: "pending", fine: 0 };
-        rec.present = false;
-        game.attendance[id] = rec;
-        save();
-        renderPresence();
-        showToast("Atleta marcado como faltou.");
-      }
-    }
-
     const edit = e.target.closest(".edit-athlete");
     if (edit) athleteModal(edit.dataset.id);
 
@@ -801,13 +755,33 @@
       renderPresence();
     }
 
-    if (e.target.matches(".presence-check, .payment-status, .fine-input")) {
+    // Presence checkboxes
+    if (e.target.matches(".presence-check, .absence-check")) {
       const game = state.games.find(x => x.id === selectedGameId);
       if (!game) return;
       const id = e.target.dataset.id;
       game.attendance = game.attendance || {};
       const rec = game.attendance[id] || { present: false, status: "pending", fine: 0 };
-      if (e.target.matches(".presence-check")) rec.present = e.target.checked;
+      if (e.target.matches(".presence-check")) {
+        rec.present = e.target.checked;
+        const absenceCheck = document.querySelector(`.absence-check[data-id="${id}"]`);
+        if (absenceCheck && e.target.checked) absenceCheck.checked = false;
+      } else if (e.target.matches(".absence-check")) {
+        rec.present = !e.target.checked;
+        const presenceCheck = document.querySelector(`.presence-check[data-id="${id}"]`);
+        if (presenceCheck && e.target.checked) presenceCheck.checked = false;
+      }
+      game.attendance[id] = rec;
+      save();
+      renderGamePaymentSummary(game);
+    }
+
+    if (e.target.matches(".payment-status, .fine-input")) {
+      const game = state.games.find(x => x.id === selectedGameId);
+      if (!game) return;
+      const id = e.target.dataset.id;
+      game.attendance = game.attendance || {};
+      const rec = game.attendance[id] || { present: false, status: "pending", fine: 0 };
       if (e.target.matches(".payment-status")) {
         rec.status = e.target.value;
         if (rec.status === "paid" && rec.fine === 0) {
