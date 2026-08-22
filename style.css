@@ -32,11 +32,23 @@ button,input,select{font:inherit}button{cursor:pointer}.app-shell{display:flex;m
 .presence-check-group input[type="checkbox"]{accent-color:var(--green);width:16px;height:16px;cursor:pointer}
 .presence-check-group .absence-check{accent-color:var(--red)}
 .pay-select{font-size:11px;padding:7px;width:100%;min-width:80px}.fine-input{max-width:80px;padding:7px;font-size:11px;width:100%}
-/* Resumo financeiro do jogo em uma linha */
-.game-finance-row{display:flex;flex-wrap:wrap;gap:10px 15px;justify-content:space-between;align-items:center;padding:5px 0}
-.game-finance-row .item{display:flex;align-items:center;gap:4px;font-size:13px;white-space:nowrap}
-.game-finance-row .item .label{color:var(--muted);font-weight:600;font-size:11px;text-transform:uppercase}
-.game-finance-row .item .value{font-weight:700;font-size:14px}
+
+/* Resumo financeiro do jogo em cards */
+.finance-cards{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin:5px 0}
+.finance-card{background:rgba(0,0,0,.3);border:1px solid var(--line);border-radius:12px;padding:10px 8px;text-align:center;transition:.2s}
+.finance-card .label{font-size:10px;text-transform:uppercase;color:var(--muted);letter-spacing:.5px;display:block}
+.finance-card .value{font-family:"Barlow Condensed";font-size:22px;font-weight:700;margin-top:2px}
+.finance-card .value.positive{color:var(--green)}
+.finance-card .value.negative{color:var(--red)}
+.finance-card .value.warning{color:var(--yellow)}
+.finance-card .value.neutral{color:var(--text)}
+
+/* Resumo financeiro do dashboard em linha única */
+.finance-row{display:flex;flex-wrap:wrap;gap:8px 16px;justify-content:space-between;align-items:center;padding:5px 0}
+.finance-row .item{display:flex;align-items:center;gap:4px;font-size:13px;white-space:nowrap}
+.finance-row .item .label{color:var(--muted);font-weight:600;font-size:11px;text-transform:uppercase}
+.finance-row .item .value{font-weight:700;font-size:14px}
+
 .draw-config{display:grid;grid-template-columns:1fr 1fr 1.4fr 1.2fr auto;gap:12px;align-items:end;flex-wrap:wrap}.check-field{padding-bottom:10px}.check-field input{accent-color:var(--green)}.teams-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(270px,1fr));gap:15px;margin-top:18px}.team-card{background:linear-gradient(160deg,#102a1c,#0b1812);border:1px solid #2b5a40;border-radius:18px;overflow:hidden}.team-head{padding:15px 17px;background:#153322;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px}.team-head h3{margin:0;font-family:"Barlow Condensed";font-size:25px}.team-total{color:var(--green);font-weight:800}.team-player{padding:10px 15px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #1b3628;font-size:12px;gap:8px}.team-player:last-child{border:0}.player-pos{color:var(--muted);font-size:10px}.draw-note{margin-top:14px;color:var(--muted);font-size:11px}.warning-box{padding:13px 15px;border:1px solid rgba(246,196,83,.25);background:rgba(246,196,83,.07);color:#e8d28f;border-radius:12px;margin-top:15px;font-size:12px}
 .matrix-wrap{overflow:auto}.matrix{border-collapse:collapse;min-width:500px}.matrix th,.matrix td{text-align:center;padding:9px;border:1px solid #1d3829}.matrix th{background:#11261b}.matrix .heat{font-weight:800}
 .leader-row{display:grid;grid-template-columns:35px 1fr 45px;align-items:center;gap:8px;padding:10px 0;border-bottom:1px solid #1c3428;word-break:break-word}.rank{font-family:"Barlow Condensed";font-size:20px;color:#526d5e}.bar{height:5px;background:#1d3729;border-radius:9px;overflow:hidden;margin-top:5px}.bar i{display:block;height:100%;background:var(--green);border-radius:9px}
@@ -51,6 +63,7 @@ button,input,select{font:inherit}button{cursor:pointer}.app-shell{display:flex;m
   .draw-config .btn{grid-column:1/-1}
   .presence-layout{grid-template-columns:1fr}
   .content-grid.two{grid-template-columns:1fr}
+  .finance-cards{grid-template-columns:repeat(3,1fr)}
 }
 @media(max-width:780px){
   .sidebar{transform:translateX(-100%);transition:.25s}
@@ -71,6 +84,7 @@ button,input,select{font:inherit}button{cursor:pointer}.app-shell{display:flex;m
   .presence-check-group{justify-content:flex-start}
   .presence-row .pay-select{width:100%}
   .presence-row .fine-input{width:100%;max-width:100%}
+  .finance-cards{grid-template-columns:repeat(2,1fr)}
   .form-grid{grid-template-columns:1fr}
   .field.full{grid-column:auto}
 }
@@ -79,4 +93,6 @@ button,input,select{font:inherit}button{cursor:pointer}.app-shell{display:flex;m
   .topbar h1{font-size:26px}
   .hero h2{font-size:37px}
   .card{padding:15px}
+  .finance-cards{grid-template-columns:1fr 1fr}
+  .finance-cards .finance-card .value{font-size:18px}
 }
