@@ -70,43 +70,63 @@
     setTimeout(() => t.remove(), 3000);
   }
 
-  // Financials
+  // ========== CÁLCULOS FINANCEIROS (NOVA LÓGICA) ==========
   function getGameFinancials(game) {
+    let totalPago = 0, totalPendente = 0, totalMultas = 0, totalMensalista = 0;
     let paidCount = 0, pendingCount = 0, mensalistaCount = 0, multaCount = 0;
-    let totalMultas = 0;
+
     const athletes = activeAthletes();
     athletes.forEach(a => {
       const rec = game.attendance?.[a.id];
       if (rec) {
-        totalMultas += Number(rec.fine || 0);
-        if (rec.status === "paid") paidCount++;
-        else if (rec.status === "pending") pendingCount++;
-        else if (rec.status === "mensalista") mensalistaCount++;
-        else if (rec.status === "multa") multaCount++;
+        const fine = Number(rec.fine) || 0;
+        const status = rec.status;
+        if (status === "paid") {
+          totalPago += fine;
+          paidCount++;
+        } else if (status === "pending") {
+          totalPendente += fine;
+          pendingCount++;
+        } else if (status === "multa") {
+          totalMultas += fine;
+          multaCount++;
+        } else if (status === "mensalista") {
+          if (fine > 0) {
+            totalMensalista += fine;
+          }
+          mensalistaCount++; // conta o atleta, independente do valor
+        }
+        // "exempt" não soma nada
       }
     });
-    const fee = Number(game.fee) || 0;
-    const totalPago = paidCount * fee;
-    const totalPendente = pendingCount * fee;
-    const totalGeral = totalPago + totalMultas;
-    return { paidCount, pendingCount, mensalistaCount, multaCount, totalPago, totalPendente, totalMultasValor: totalMultas, totalGeral };
+
+    const totalGeral = totalPago + totalMultas + totalMensalista;
+    return { paidCount, pendingCount, mensalistaCount, multaCount, totalPago, totalPendente, totalMultas, totalMensalista, totalGeral };
   }
 
   function getOverallFinancials() {
-    let totalPagoGlobal = 0, totalPendenteGlobal = 0, totalMultasGlobal = 0;
+    let totalPagoGlobal = 0, totalPendenteGlobal = 0, totalMultasGlobal = 0, totalMensalistaGlobal = 0;
     state.games.forEach(g => {
       const fin = getGameFinancials(g);
       totalPagoGlobal += fin.totalPago;
       totalPendenteGlobal += fin.totalPendente;
-      totalMultasGlobal += fin.totalMultasValor;
+      totalMultasGlobal += fin.totalMultas;
+      totalMensalistaGlobal += fin.totalMensalista;
     });
     const manualIncome = state.finance.filter(x => x.type === "income").reduce((s, x) => s + Number(x.amount), 0);
     const manualExpense = state.finance.filter(x => x.type === "expense").reduce((s, x) => s + Number(x.amount), 0);
-    const receitasRealizadas = totalPagoGlobal + totalMultasGlobal + manualIncome;
-    return { receitasRealizadas, despesas: manualExpense, pendenteTotal: totalPendenteGlobal, multasTotal: totalMultasGlobal };
+    // Receita realizada = pagos + multas + mensalistas + lançamentos manuais de income
+    const receitasRealizadas = totalPagoGlobal + totalMultasGlobal + totalMensalistaGlobal + manualIncome;
+    return {
+      receitasRealizadas,
+      despesas: manualExpense,
+      pendenteTotal: totalPendenteGlobal,
+      multasTotal: totalMultasGlobal,
+      mensalistaTotal: totalMensalistaGlobal
+    };
   }
 
-  // Navigation
+  // ========== NAVEGAÇÃO ==========
   function navigate(page) {
     currentPage = page;
     $$(".nav-item").forEach(b => b.classList.toggle("active", b.dataset.page === page));
@@ -130,7 +150,7 @@
     }
   }
 
-  // Dashboard
+  // ========== DASHBOARD ==========
   function renderDashboard() {
     const total = activeAthletes().length;
     const next = [...state.games].filter(g => g.date >= todayISO()).sort((a, b) => a.date.localeCompare(b.date))[0];
@@ -178,7 +198,6 @@
         `<div class="empty-state">Nenhum atleta marcado como mensalista.</div>`;
     }
 
-    // Finance summary - agora em linha única
     const finSum = document.getElementById("financeSummary");
     if (finSum) {
       finSum.innerHTML = `
@@ -214,7 +233,7 @@
       `<div class="empty-state">Sem registros de presença ainda.</div>`;
   }
 
-  // Athletes
+  // ========== ATLETAS ==========
   function renderAthletes() {
     const q = (document.getElementById("athleteSearch")?.value || "").toLowerCase();
     const pos = document.getElementById("positionFilter")?.value || "";
@@ -248,7 +267,7 @@
     return (name || "?").split(" ").slice(0, 2).map(x => x[0]).join("").toUpperCase();
   }
 
-  // Presence
+  // ========== PRESENÇA ==========
   function renderPresence() {
     const select = document.getElementById("gameSelect");
     if (!select) return;
@@ -277,23 +296,16 @@
 
     list.innerHTML = athletes.map(a => {
       const rec = game.attendance?.[a.id] || { present: false, status: "pending", fine: 0 };
-      // NÃO marcar nenhum checkbox automaticamente; apenas refletir se houver dado salvo
       const presentChecked = rec.present ? "checked" : "";
-      const absentChecked = !rec.present ? "checked" : "";
-      // Mas se rec.present for false, não marcar "Faltou" – apenas deixar desmarcado (removemos o checked)
-      // Ou seja, forçamos ambos desmarcados se present === false, pois o admin deve escolher.
-      // Porém, se o admin já salvou uma escolha anterior (present = true), marcamos presente.
-      // Se present = false, não marcamos nenhum dos dois.
-      const checkPresent = rec.present ? "checked" : "";
-      const checkAbsent = ""; // nunca marcar faltou automaticamente
+      // Não marcar "faltou" automaticamente
       return `<div class="presence-row">
         <div class="presence-player">
           <div class="mini-avatar">${initials(a.name)}</div>
           <div><strong>${escapeHTML(a.name)}</strong><div class="player-pos">${a.position} · ${a.quality}/10</div></div>
         </div>
         <div class="presence-check-group">
-          <label><input type="checkbox" class="presence-check" data-id="${a.id}" ${checkPresent}> Presente</label>
-          <label><input type="checkbox" class="absence-check" data-id="${a.id}" ${checkAbsent}> Faltou</label>
+          <label><input type="checkbox" class="presence-check" data-id="${a.id}" ${presentChecked}> Presente</label>
+          <label><input type="checkbox" class="absence-check" data-id="${a.id}"> Faltou</label>
         </div>
         <select class="input pay-select payment-status" data-id="${a.id}">
           <option value="paid" ${rec.status === "paid" ? "selected" : ""}>Pago</option>
@@ -302,7 +314,7 @@
           <option value="mensalista" ${rec.status === "mensalista" ? "selected" : ""}>Mensalista</option>
           <option value="multa" ${rec.status === "multa" ? "selected" : ""}>Multa</option>
         </select>
-        <input class="input pay-select fine-input" type="number" min="0" step=".01" data-id="${a.id}" value="${rec.fine || 0}" title="Multa">
+        <input class="input pay-select fine-input" type="number" min="0" step=".01" data-id="${a.id}" value="${rec.fine || 0}" title="Valor (R$)">
       </div>`;
     }).join("");
 
@@ -316,15 +328,15 @@
     el.innerHTML = `
       <div class="game-finance-row">
         <div class="item"><span class="label">Pagos</span><span class="value positive">${money(fin.totalPago)}</span></div>
-        <div class="item"><span class="label">Multas</span><span class="value">${money(fin.totalMultasValor)}</span></div>
+        <div class="item"><span class="label">Multas</span><span class="value">${money(fin.totalMultas)}</span></div>
         <div class="item"><span class="label">Pendentes</span><span class="value warning">${money(fin.totalPendente)}</span></div>
+        <div class="item"><span class="label">Mensalistas</span><span class="value">${money(fin.totalMensalista)}</span></div>
         <div class="item"><span class="label">Total</span><span class="value positive">${money(fin.totalGeral)}</span></div>
-        <div class="item"><span class="label">Mensalistas</span><span class="value">${fin.mensalistaCount}</span></div>
       </div>
     `;
   }
 
-  // Teams Draw
+  // ========== SORTEIO ==========
   function drawTeams() {
     const per = Math.max(2, Number(document.getElementById("playersPerTeam")?.value) || 5);
     const count = Math.max(2, Number(document.getElementById("teamCount")?.value) || 2);
@@ -384,7 +396,7 @@
     }
   }
 
-  // Rolinho
+  // ========== ROLINHO ==========
   function rolinhoCounts() {
     const given = {}, taken = {};
     state.rolinhos.forEach(r => {
@@ -456,13 +468,13 @@
       `<div class="empty-state">Cadastre atletas para visualizar o confronto direto.</div>`;
   }
 
-  // Finance
+  // ========== FINANCEIRO ==========
   function renderFinance() {
     const fin = getOverallFinancials();
     const statsEl = document.getElementById("financeStats");
     if (statsEl) {
       statsEl.innerHTML = `
-        ${statCard("RECEITAS REALIZADAS", money(fin.receitasRealizadas), "pagamentos + multas", "positive")}
+        ${statCard("RECEITAS REALIZADAS", money(fin.receitasRealizadas), "pagamentos + multas + mensalistas", "positive")}
         ${statCard("DESPESAS", money(fin.despesas), "total", "negative")}
         ${statCard("SALDO", money(fin.receitasRealizadas - fin.despesas), "realizado", (fin.receitasRealizadas - fin.despesas) >= 0 ? "positive" : "negative")}
         ${statCard("PENDENTE", money(fin.pendenteTotal), "a receber", "warning")}
@@ -492,7 +504,7 @@
     }
   }
 
-  // Modals
+  // ========== MODAIS ==========
   function openModal(html) {
     const modal = document.getElementById("modal");
     const backdrop = document.getElementById("modalBackdrop");
@@ -672,7 +684,7 @@
     document.querySelectorAll(".close-modal").forEach(btn => btn.onclick = closeModal);
   }
 
-  // Events
+  // ========== EVENTOS ==========
   document.addEventListener("click", e => {
     const nav = e.target.closest(".nav-item");
     if (nav) return navigate(nav.dataset.page);
@@ -711,16 +723,17 @@
       if (game) {
         game.attendance = game.attendance || {};
         activeAthletes().forEach(a => {
+          // Marca presente e status como pago, preenche o fine com o valor do jogo se vazio
+          const fine = game.attendance[a.id]?.fine || 0;
           game.attendance[a.id] = {
-            ...(game.attendance[a.id] || {}),
             present: true,
-            status: game.attendance[a.id]?.status || "pending",
-            fine: game.attendance[a.id]?.fine || 0
+            status: "paid",
+            fine: fine > 0 ? fine : Number(game.fee) || 0
           };
         });
         save();
         renderPresence();
-        showToast("Todos marcados como presentes.");
+        showToast("Todos marcados como presentes e status 'Pago'.");
       }
     }
 
@@ -772,19 +785,30 @@
       const id = e.target.dataset.id;
       game.attendance = game.attendance || {};
       const rec = game.attendance[id] || { present: false, status: "pending", fine: 0 };
+
       if (e.target.matches(".presence-check")) {
         rec.present = e.target.checked;
+        // Se marcou presente, desmarca o faltou
         const absenceCheck = document.querySelector(`.absence-check[data-id="${id}"]`);
         if (absenceCheck && e.target.checked) absenceCheck.checked = false;
+        // Se presente foi marcado, muda status para "paid" e preenche o fine se vazio
+        if (rec.present) {
+          rec.status = "paid";
+          if (rec.fine === 0) {
+            rec.fine = Number(game.fee) || 0;
+          }
+        }
       } else if (e.target.matches(".absence-check")) {
-        rec.present = false; // se marcar faltou, presente falso
+        // Se marcar faltou, presente falso
+        rec.present = false;
         const presenceCheck = document.querySelector(`.presence-check[data-id="${id}"]`);
         if (presenceCheck && e.target.checked) presenceCheck.checked = false;
+        // Não alteramos o status automaticamente ao marcar faltou
       }
-      // Se desmarcar ambos, rec.present continua false
+
       game.attendance[id] = rec;
       save();
-      renderGamePaymentSummary(game);
+      renderPresence(); // recarrega toda a lista para atualizar os selects
     }
 
     if (e.target.matches(".payment-status, .fine-input")) {
@@ -795,6 +819,7 @@
       const rec = game.attendance[id] || { present: false, status: "pending", fine: 0 };
       if (e.target.matches(".payment-status")) {
         rec.status = e.target.value;
+        // Se mudar para "paid" e fine zerado, preenche com o valor do jogo
         if (rec.status === "paid" && rec.fine === 0) {
           rec.fine = Number(game.fee) || 0;
         }
