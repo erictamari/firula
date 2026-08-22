@@ -157,6 +157,7 @@
     const avg = total ? Math.round(totalPresence / total) : 0;
     const fin = getOverallFinancials();
 
+    // Stats grid
     const statsEl = document.getElementById("dashboardStats");
     if (statsEl) {
       statsEl.innerHTML = `
@@ -167,9 +168,9 @@
       `;
     }
 
+    // Próximo jogo
     const nextTitle = document.getElementById("nextGameTitle");
     if (nextTitle) nextTitle.textContent = next ? `${dateBR(next.date)} · ${next.time}` : "Nenhum jogo agendado";
-
     const nextBox = document.getElementById("nextGameBox");
     if (nextBox) {
       nextBox.innerHTML = next ?
@@ -177,10 +178,12 @@
         `<div class="empty-icon">⚽</div><strong>Cadastre o próximo jogo</strong><span>Organize a presença e o caixa da partida.</span>`;
     }
 
+    // Rankings
     renderRolinhoRanking("#rolinhoRanking", 5);
     renderAttendanceRanking("#attendanceRanking", 5, false);
     renderAttendanceRanking("#attendanceRankingLow", 5, true);
 
+    // Mensalistas
     const mensalistas = new Set();
     state.games.forEach(g => {
       if (g.attendance) {
@@ -197,6 +200,7 @@
         `<div class="empty-state">Nenhum atleta marcado como mensalista.</div>`;
     }
 
+    // Finance resumo
     const finSum = document.getElementById("financeSummary");
     if (finSum) {
       finSum.innerHTML = `
@@ -207,6 +211,55 @@
           <div class="item"><span class="label">Saldo</span><span class="value ${(fin.receitasRealizadas - fin.despesas) >= 0 ? 'positive' : 'negative'}">${money(fin.receitasRealizadas - fin.despesas)}</span></div>
         </div>
       `;
+    }
+
+    // ===== NOVOS INDICADORES: FALTANTES E PENDENTES =====
+    // Faltantes: atletas que não compareceram no último jogo (o mais recente)
+    const lastGame = state.games.length ? state.games.reduce((a, b) => a.date > b.date ? a : b) : null;
+    const faltantes = [];
+    if (lastGame) {
+      activeAthletes().forEach(a => {
+        const rec = lastGame.attendance?.[a.id];
+        if (!rec || !rec.present) {
+          faltantes.push(a.name);
+        }
+      });
+    }
+    const faltantesEl = document.getElementById("dashboardFaltantes");
+    if (faltantesEl) {
+      const totalFaltantes = faltantes.length;
+      if (totalFaltantes > 0) {
+        faltantesEl.innerHTML = `
+          <div class="total-badge">${totalFaltantes} atleta${totalFaltantes > 1 ? 's' : ''} faltaram</div>
+          ${faltantes.map(name => `<div class="list-item"><span class="name">${escapeHTML(name)}</span></div>`).join('')}
+        `;
+      } else {
+        faltantesEl.innerHTML = `<div class="empty-message">✅ Todos os atletas compareceram ao último jogo.</div>`;
+      }
+    }
+
+    // Pendentes: atletas com status "pending" no último jogo
+    const pendentes = [];
+    if (lastGame) {
+      activeAthletes().forEach(a => {
+        const rec = lastGame.attendance?.[a.id];
+        if (rec && rec.status === "pending") {
+          pendentes.push({ name: a.name, value: Number(rec.fine) || 0 });
+        }
+      });
+    }
+    const pendentesEl = document.getElementById("dashboardPendentes");
+    if (pendentesEl) {
+      const totalPendentes = pendentes.length;
+      const totalValor = pendentes.reduce((s, p) => s + p.value, 0);
+      if (totalPendentes > 0) {
+        pendentesEl.innerHTML = `
+          <div class="total-badge">${totalPendentes} pendência${totalPendentes > 1 ? 's' : ''} · ${money(totalValor)}</div>
+          ${pendentes.map(p => `<div class="list-item"><span class="name">${escapeHTML(p.name)}</span><span class="badge">${money(p.value)}</span></div>`).join('')}
+        `;
+      } else {
+        pendentesEl.innerHTML = `<div class="empty-message">✅ Nenhum pagamento pendente no último jogo.</div>`;
+      }
     }
   }
 
@@ -295,16 +348,44 @@
 
     list.innerHTML = athletes.map(a => {
       const rec = game.attendance?.[a.id] || { present: false, status: "pending", fine: 0 };
-      // Não marcar "faltou" automaticamente; apenas presente se já estiver salvo
       const presentChecked = rec.present ? "checked" : "";
+      const absentChecked = (!rec.present && rec.present !== undefined) ? "checked" : "";
+      // Para garantir que se rec.present for false, o checkbox de faltou fique marcado apenas se o usuário marcou faltou.
+      // Mas como no estado inicial rec.present é false, e o usuário ainda não marcou nada, não devemos marcar faltou.
+      // Vamos controlar com uma flag: se rec.present for false E já houver um registro (ou seja, o admin marcou faltou explicitamente).
+      // Para simplificar, nunca marcamos faltou automaticamente – apenas presente se for true.
+      // Assim, o admin decide.
+      const absenceChecked = (rec.present === false && rec.present !== undefined) ? "checked" : "";
+      // Na prática, se o admin marcou faltou, rec.present = false. Então marcamos faltou.
+      // Porém, para novos atletas, rec.present = false e não há distinção se foi marcado.
+      // Vamos usar uma flag extra? Melhor: armazenar se o admin marcou explicitamente.
+      // Para simplificar, vou considerar que se present for false, significa que o admin marcou faltou (pois o padrão é false).
+      // Mas isso causa o checkbox ficar marcado para todos os novos atletas. Vamos corrigir: só marcar faltou se o atleta tiver sido explicitamente marcado como faltou.
+      // Para isso, adicionamos uma propriedade 'absence' no attendance.
+      // Vamos adaptar: no objeto attendance, além de 'present', vamos ter 'absence' (booleano).
+      // Quando o admin marcar faltou, setamos absence = true e present = false.
+      // No render, marcamos faltou se absence for true.
+      // Vou modificar a lógica nos eventos.
+      // Vou usar uma abordagem mais simples: se present for false e o campo 'status' não for 'exempt' e o atleta não estiver presente, consideramos que faltou.
+      // Mas isso é confuso. Vou usar a flag absence.
+      // Como não quero quebrar dados existentes, vou criar uma nova propriedade 'absence' nos registros.
+      // Se absence não existir, usaremos !present como fallback.
+      // Mas para novos registros, absence será undefined.
+      // Vou alterar no código: ao marcar faltou, setamos rec.present = false e rec.absence = true.
+      // Ao marcar presente, setamos rec.present = true e rec.absence = false.
+      // No render, usamos absence para marcar o checkbox.
+      let absence = rec.absence || false;
+      if (rec.present === true) absence = false; // se presente, não é falta
+      const presentChecked2 = rec.present ? "checked" : "";
+      const absenceChecked2 = absence ? "checked" : "";
       return `<div class="presence-row">
         <div class="presence-player">
           <div class="mini-avatar">${initials(a.name)}</div>
           <div><strong>${escapeHTML(a.name)}</strong><div class="player-pos">${a.position} · ${a.quality}/10</div></div>
         </div>
         <div class="presence-check-group">
-          <label><input type="checkbox" class="presence-check" data-id="${a.id}" ${presentChecked}> Presente</label>
-          <label><input type="checkbox" class="absence-check" data-id="${a.id}"> Faltou</label>
+          <label><input type="checkbox" class="presence-check" data-id="${a.id}" ${presentChecked2}> Presente</label>
+          <label><input type="checkbox" class="absence-check" data-id="${a.id}" ${absenceChecked2}> Faltou</label>
         </div>
         <select class="input pay-select payment-status" data-id="${a.id}">
           <option value="paid" ${rec.status === "paid" ? "selected" : ""}>Pago</option>
@@ -421,12 +502,9 @@
       `;
     }
 
-    // Ranking de quem mais deu (given)
     renderRolinhoRanking("#nutmegGivenRanking", 8, true);
-    // Ranking de quem mais tomou (taken)
     renderRolinhoRanking("#nutmegTakenRanking", 8, false);
 
-    // Histórico
     const table = document.getElementById("nutmegTable");
     if (table) {
       table.innerHTML = state.rolinhos.length ?
@@ -712,12 +790,14 @@
           const fine = game.attendance[a.id]?.fine || 0;
           game.attendance[a.id] = {
             present: true,
+            absence: false,
             status: "paid",
             fine: fine > 0 ? fine : Number(game.fee) || 0
           };
         });
         save();
         renderPresence();
+        renderDashboard();
         showToast("Todos marcados como presentes e status 'Pago'.");
       }
     }
@@ -761,6 +841,7 @@
       selectedGameId = e.target.value;
       sortOrder = "default";
       renderPresence();
+      renderDashboard(); // atualiza dashboard com novo jogo selecionado?
     }
 
     // Presence checkboxes
@@ -769,28 +850,40 @@
       if (!game) return;
       const id = e.target.dataset.id;
       game.attendance = game.attendance || {};
-      const rec = game.attendance[id] || { present: false, status: "pending", fine: 0 };
+      const rec = game.attendance[id] || { present: false, absence: false, status: "pending", fine: 0 };
 
       if (e.target.matches(".presence-check")) {
-        rec.present = e.target.checked;
+        const isChecked = e.target.checked;
+        rec.present = isChecked;
+        rec.absence = !isChecked; // se presente, absence false; se desmarcar presente, absence true? Não, apenas desmarca.
+        // Se o usuário desmarcar presente, não deve marcar faltou automaticamente.
+        // Vamos manter absence como false se desmarcar.
+        if (!isChecked) rec.absence = false;
+        // Se marcou presente, desmarca o faltou
         const absenceCheck = document.querySelector(`.absence-check[data-id="${id}"]`);
-        if (absenceCheck && e.target.checked) absenceCheck.checked = false;
-        if (rec.present) {
+        if (absenceCheck && isChecked) absenceCheck.checked = false;
+        if (isChecked) {
           rec.status = "paid";
           if (rec.fine === 0) {
             rec.fine = Number(game.fee) || 0;
           }
         }
       } else if (e.target.matches(".absence-check")) {
-        rec.present = false;
-        const presenceCheck = document.querySelector(`.presence-check[data-id="${id}"]`);
-        if (presenceCheck && e.target.checked) presenceCheck.checked = false;
-        // Ao marcar faltou, não alteramos status automaticamente
+        const isChecked = e.target.checked;
+        rec.absence = isChecked;
+        if (isChecked) {
+          rec.present = false;
+          const presenceCheck = document.querySelector(`.presence-check[data-id="${id}"]`);
+          if (presenceCheck) presenceCheck.checked = false;
+        } else {
+          // Se desmarcar faltou, não altera presente
+        }
       }
 
       game.attendance[id] = rec;
       save();
       renderPresence();
+      renderDashboard(); // atualiza dashboard com novos dados
     }
 
     if (e.target.matches(".payment-status, .fine-input")) {
@@ -798,7 +891,7 @@
       if (!game) return;
       const id = e.target.dataset.id;
       game.attendance = game.attendance || {};
-      const rec = game.attendance[id] || { present: false, status: "pending", fine: 0 };
+      const rec = game.attendance[id] || { present: false, absence: false, status: "pending", fine: 0 };
       if (e.target.matches(".payment-status")) {
         rec.status = e.target.value;
         if (rec.status === "paid" && rec.fine === 0) {
@@ -809,6 +902,7 @@
       game.attendance[id] = rec;
       save();
       renderGamePaymentSummary(game);
+      renderDashboard(); // atualiza dashboard com novos dados financeiros
     }
 
     if (e.target.id === "athleteSearch" || e.target.id === "positionFilter" || e.target.id === "qualityFilter") {
@@ -852,6 +946,7 @@
         selectedGameId = state.games[0]?.id || null;
         save();
         renderPage(currentPage);
+        renderDashboard();
         showToast("Dados importados com sucesso.");
       } catch (_) {
         showToast("Arquivo inválido.", "error");
