@@ -2,7 +2,7 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes" />
   <meta name="description" content="Futebol Manager — gestão de atletas, presença, pagamentos, sorteio equilibrado de times, rolinhos e financeiro." />
   <title>Futebol Manager</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -183,17 +183,17 @@
         <div class="stats-grid" id="rolinhoStats"></div>
         <div class="content-grid two">
           <article class="card">
-            <div class="card-head"><div><p class="eyebrow">CONFRONTOS</p><h3>Histórico</h3></div></div>
-            <div class="table-wrap"><table><thead><tr><th>Quem deu</th><th>Quem tomou</th><th>Data</th><th></th></tr></thead><tbody id="nutmegTable"></tbody></table></div>
+            <div class="card-head"><div><p class="eyebrow">RANKING</p><h3>Quem mais deu rolinho</h3></div></div>
+            <div id="nutmegGivenRanking"></div>
           </article>
           <article class="card">
-            <div class="card-head"><div><p class="eyebrow">RANKING</p><h3>Rolinho por atleta</h3></div></div>
-            <div id="nutmegLeaderboard"></div>
+            <div class="card-head"><div><p class="eyebrow">RANKING</p><h3>Quem mais tomou rolinho</h3></div></div>
+            <div id="nutmegTakenRanking"></div>
           </article>
         </div>
         <div class="card">
-          <div class="card-head"><div><p class="eyebrow">CONFRONTO DIRETO</p><h3>Quem mais tomou de quem?</h3></div></div>
-          <div id="nutmegMatrix" class="matrix-wrap"></div>
+          <div class="card-head"><div><p class="eyebrow">CONFRONTOS</p><h3>Histórico</h3></div></div>
+          <div class="table-wrap"><table><thead><tr><th>Quem deu</th><th>Quem tomou</th><th>Data</th><th></th></tr></thead><tbody id="nutmegTable"></tbody></table></div>
         </div>
       </section>
 
