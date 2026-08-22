@@ -49,6 +49,14 @@ button,input,select{font:inherit}button{cursor:pointer}.app-shell{display:flex;m
 .finance-row .item .label{color:var(--muted);font-weight:600;font-size:11px;text-transform:uppercase}
 .finance-row .item .value{font-weight:700;font-size:14px}
 
+/* Listas do dashboard (faltantes e pendentes) */
+.dashboard-list{margin-top:4px}
+.dashboard-list .list-item{display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid rgba(255,255,255,.05);font-size:13px}
+.dashboard-list .list-item .name{font-weight:600}
+.dashboard-list .list-item .badge{background:rgba(255,255,255,.08);padding:2px 10px;border-radius:20px;font-size:11px;color:var(--muted)}
+.dashboard-list .total-badge{display:inline-block;background:var(--green);color:#07100d;padding:2px 12px;border-radius:20px;font-weight:800;font-size:14px;margin-bottom:6px}
+.dashboard-list .empty-message{color:var(--muted);font-size:13px;padding:10px 0}
+
 .draw-config{display:grid;grid-template-columns:1fr 1fr 1.4fr 1.2fr auto;gap:12px;align-items:end;flex-wrap:wrap}.check-field{padding-bottom:10px}.check-field input{accent-color:var(--green)}.teams-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(270px,1fr));gap:15px;margin-top:18px}.team-card{background:linear-gradient(160deg,#102a1c,#0b1812);border:1px solid #2b5a40;border-radius:18px;overflow:hidden}.team-head{padding:15px 17px;background:#153322;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px}.team-head h3{margin:0;font-family:"Barlow Condensed";font-size:25px}.team-total{color:var(--green);font-weight:800}.team-player{padding:10px 15px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #1b3628;font-size:12px;gap:8px}.team-player:last-child{border:0}.player-pos{color:var(--muted);font-size:10px}.draw-note{margin-top:14px;color:var(--muted);font-size:11px}.warning-box{padding:13px 15px;border:1px solid rgba(246,196,83,.25);background:rgba(246,196,83,.07);color:#e8d28f;border-radius:12px;margin-top:15px;font-size:12px}
 .matrix-wrap{overflow:auto}.matrix{border-collapse:collapse;min-width:500px}.matrix th,.matrix td{text-align:center;padding:9px;border:1px solid #1d3829}.matrix th{background:#11261b}.matrix .heat{font-weight:800}
 .leader-row{display:grid;grid-template-columns:35px 1fr 45px;align-items:center;gap:8px;padding:10px 0;border-bottom:1px solid #1c3428;word-break:break-word}.rank{font-family:"Barlow Condensed";font-size:20px;color:#526d5e}.bar{height:5px;background:#1d3729;border-radius:9px;overflow:hidden;margin-top:5px}.bar i{display:block;height:100%;background:var(--green);border-radius:9px}
