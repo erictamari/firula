@@ -6,7 +6,7 @@ Sistema web completo, responsivo e com visual profissional para **gestão de atl
 
 ## Recursos
 
-- 📊 **Dashboard** com visão geral de atletas, presenças, saldo e pendentes.
+- 📊 **Dashboard** com visão geral de atletas, presenças, saldo, **pendentes** e **faltantes**.
 - 👥 **Cadastro de atletas** com posição (inclui Zagueiro), qualidade e assiduidade.
 - ✅ **Presença & pagamentos**
   - Checkboxes lado a lado para **Presente** e **Faltou** – ambos iniciam desmarcados; o administrador deve marcar a opção correta.
@@ -24,11 +24,13 @@ Sistema web completo, responsivo e com visual profissional para **gestão de atl
 - 😅 **Rolinho** com:
   - Rankings separados: **Quem mais deu** e **Quem mais tomou**.
   - Histórico de confrontos com exclusão.
-  - Removida a matriz de confronto direto para simplificar.
 - 💰 **Financeiro**
   - Lançamentos manuais de receitas e despesas.
   - A **receita realizada** inclui: Pagos + Multas + Mensalistas + lançamentos manuais de income.
   - Pendentes são exibidos separadamente e **não** entram na receita.
+- 📊 **Dashboard com indicadores de**
+  - **Faltantes**: total e lista de atletas que não compareceram ao último jogo.
+  - **Pendentes**: total e lista de atletas com pagamento pendente no último jogo, com valores.
 - 💾 **Persistência** via localStorage, com exportação e importação de backup.
 
 ## Layout responsivo
